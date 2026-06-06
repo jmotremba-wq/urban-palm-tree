@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retirement Calculator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Retirement Calculator</h1>
+      <p class="header-subtitle">Plan your financial future with confidence</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="layout">
+
+      <!-- ===== INPUTS ===== -->
+      <section class="card inputs-card">
+        <h2 class="card-title">Your Information</h2>
+
+        <div class="form-group">
+          <label for="currentAge">Current Age</label>
+          <div class="input-wrap">
+            <input type="number" id="currentAge" placeholder="30" min="1" max="99" value="30" />
+            <span class="unit">yrs</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="retirementAge">Retirement Age</label>
+          <div class="input-wrap">
+            <input type="number" id="retirementAge" placeholder="65" min="1" max="99" value="65" />
+            <span class="unit">yrs</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group">
+          <label for="currentSavings">Current Savings</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="currentSavings" placeholder="50000" min="0" value="50000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="monthlyContribution">Monthly Contribution</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="monthlyContribution" placeholder="500" min="0" value="500" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group">
+          <label for="annualReturn">
+            Expected Annual Return
+            <span class="hint">nominal, before inflation</span>
+          </label>
+          <div class="input-wrap">
+            <input type="number" id="annualReturn" placeholder="7" min="0" max="30" step="0.1" value="7" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="inflationRate">
+            Expected Inflation Rate
+            <span class="hint">average annual</span>
+          </label>
+          <div class="input-wrap">
+            <input type="number" id="inflationRate" placeholder="3" min="0" max="20" step="0.1" value="3" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group">
+          <label for="desiredIncome">
+            Desired Monthly Income
+            <span class="hint">in today's dollars</span>
+          </label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="desiredIncome" placeholder="5000" min="0" value="5000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="socialSecurity">
+            Expected Social Security
+            <span class="hint">monthly benefit</span>
+          </label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="socialSecurity" placeholder="1800" min="0" value="1800" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group toggle-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="reserveEnabled" />
+            <span>Navy Reserve Officer Pension</span>
+          </label>
+        </div>
+
+        <div id="reserveSection" class="reserve-section hidden">
+          <p class="reserve-note">Uses 2025 base pay tables. Formula: (points ÷ 360) × rate × base pay.</p>
+
+          <div class="form-group">
+            <label for="reserveGrade">Pay Grade at Retirement</label>
+            <div class="input-wrap select-wrap">
+              <select id="reserveGrade">
+                <option value="O-3">O-3 — Lieutenant</option>
+                <option value="O-4">O-4 — Lt Commander</option>
+                <option value="O-5" selected>O-5 — Commander</option>
+                <option value="O-6">O-6 — Captain</option>
+                <option value="O-7">O-7 — Rear Admiral (LH)</option>
+                <option value="O-8">O-8 — Rear Admiral (UH)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reserveYOS">Years of Service at Retirement</label>
+            <div class="input-wrap">
+              <input type="number" id="reserveYOS" min="0" max="40" value="20" />
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reservePoints">
+              Total Retirement Points
+              <span class="hint">typical: 15 membership + 48 drills = ~63 pts/yr</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="reservePoints" min="0" value="1260" />
+              <span class="unit">pts</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reserveSystem">Retirement System</label>
+            <div class="input-wrap select-wrap">
+              <select id="reserveSystem">
+                <option value="high3" selected>High-3 (2.5% multiplier)</option>
+                <option value="brs">BRS — Blended (2.0% multiplier)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reservePensionAge">
+              Age Pension Begins
+              <span class="hint">typically 60; may be earlier with qualifying active-duty service post-2008</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="reservePensionAge" min="50" max="75" value="60" />
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+
+          <div class="reserve-estimate" id="reserveEstimate">Estimated pension: —</div>
+        </div>
+      </section>
+
+      <!-- ===== RESULTS ===== -->
+      <section class="results-panel">
+
+        <!-- Error banner -->
+        <div id="errorBanner" class="error-banner hidden">
+          <span id="errorMessage"></span>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="summary-grid">
+          <div class="stat-card">
+            <div class="stat-label">Projected Savings at Retirement</div>
+            <div class="stat-value" id="projectedSavings">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Years to Retirement</div>
+            <div class="stat-value" id="yearsToRetirement">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Affordable Monthly Income<span class="stat-sublabel"> (savings only)</span></div>
+            <div class="stat-value" id="affordableIncome">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Monthly Income<span class="stat-sublabel" id="totalIncomeLabel"> (incl. Social Security)</span></div>
+            <div class="stat-value" id="totalMonthlyIncome">—</div>
+          </div>
+        </div>
+
+        <!-- Goal indicator -->
+        <div id="goalIndicator" class="goal-card hidden">
+          <div class="goal-icon" id="goalIcon"></div>
+          <div class="goal-text">
+            <div class="goal-title" id="goalTitle"></div>
+            <div class="goal-detail" id="goalDetail"></div>
+          </div>
+        </div>
+
+        <!-- Savings duration -->
+        <div class="card info-card">
+          <div class="info-label">Savings Will Last</div>
+          <div class="info-value" id="savingsDuration">—</div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card chart-card">
+          <h3 class="chart-title">Savings Balance Over Time</h3>
+          <div class="chart-legend">
+            <span class="legend-dot green"></span><span>Accumulation</span>
+            <span class="legend-dot orange"></span><span>Retirement drawdown</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="savingsChart"></canvas>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>This calculator is for educational purposes only and does not constitute financial advice.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="calculator.js"></script>
+</body>
+</html>
