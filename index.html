@@ -102,6 +102,75 @@
             <input type="number" id="socialSecurity" placeholder="1800" min="0" value="1800" />
           </div>
         </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group toggle-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="reserveEnabled" />
+            <span>Navy Reserve Officer Pension</span>
+          </label>
+        </div>
+
+        <div id="reserveSection" class="reserve-section hidden">
+          <p class="reserve-note">Uses 2025 base pay tables. Formula: (points ÷ 360) × rate × base pay.</p>
+
+          <div class="form-group">
+            <label for="reserveGrade">Pay Grade at Retirement</label>
+            <div class="input-wrap select-wrap">
+              <select id="reserveGrade">
+                <option value="O-3">O-3 — Lieutenant</option>
+                <option value="O-4">O-4 — Lt Commander</option>
+                <option value="O-5" selected>O-5 — Commander</option>
+                <option value="O-6">O-6 — Captain</option>
+                <option value="O-7">O-7 — Rear Admiral (LH)</option>
+                <option value="O-8">O-8 — Rear Admiral (UH)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reserveYOS">Years of Service at Retirement</label>
+            <div class="input-wrap">
+              <input type="number" id="reserveYOS" min="0" max="40" value="20" />
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reservePoints">
+              Total Retirement Points
+              <span class="hint">typical: 15 membership + 48 drills = ~63 pts/yr</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="reservePoints" min="0" value="1260" />
+              <span class="unit">pts</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reserveSystem">Retirement System</label>
+            <div class="input-wrap select-wrap">
+              <select id="reserveSystem">
+                <option value="high3" selected>High-3 (2.5% multiplier)</option>
+                <option value="brs">BRS — Blended (2.0% multiplier)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="reservePensionAge">
+              Age Pension Begins
+              <span class="hint">typically 60; may be earlier with qualifying active-duty service post-2008</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="reservePensionAge" min="50" max="75" value="60" />
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+
+          <div class="reserve-estimate" id="reserveEstimate">Estimated pension: —</div>
+        </div>
       </section>
 
       <!-- ===== RESULTS ===== -->
@@ -127,7 +196,7 @@
             <div class="stat-value" id="affordableIncome">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Total Monthly Income<span class="stat-sublabel"> (incl. Social Security)</span></div>
+            <div class="stat-label">Total Monthly Income<span class="stat-sublabel" id="totalIncomeLabel"> (incl. Social Security)</span></div>
             <div class="stat-value" id="totalMonthlyIncome">—</div>
           </div>
         </div>
