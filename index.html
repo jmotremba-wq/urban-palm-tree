@@ -10,7 +10,7 @@
   <header>
     <div class="header-inner">
       <h1>Retirement Calculator</h1>
-      <p class="header-subtitle">Plan your financial future with confidence</p>
+      <p class="header-subtitle">Bespoke planning for Navy Reserve Officers</p>
     </div>
   </header>
 
@@ -18,13 +18,16 @@
     <div class="layout">
 
       <!-- ===== INPUTS ===== -->
-      <section class="card inputs-card">
+      <section class="card inputs-card" id="inputs-card">
         <h2 class="card-title">Your Information</h2>
+
+        <!-- SECTION: Personal -->
+        <div class="section-label">Personal</div>
 
         <div class="form-group">
           <label for="currentAge">Current Age</label>
           <div class="input-wrap">
-            <input type="number" id="currentAge" placeholder="30" min="1" max="99" value="30" />
+            <input type="number" id="currentAge" min="1" max="99" value="38" />
             <span class="unit">yrs</span>
           </div>
         </div>
@@ -32,88 +35,222 @@
         <div class="form-group">
           <label for="retirementAge">Retirement Age</label>
           <div class="input-wrap">
-            <input type="number" id="retirementAge" placeholder="65" min="1" max="99" value="65" />
+            <input type="number" id="retirementAge" min="1" max="99" value="60" />
             <span class="unit">yrs</span>
           </div>
         </div>
 
         <div class="divider"></div>
 
+        <!-- SECTION: Investment Accounts -->
+        <div class="section-label">Investment Accounts</div>
+
         <div class="form-group">
-          <label for="currentSavings">Current Savings</label>
+          <label for="tradBalance">Traditional 401k Balance</label>
           <div class="input-wrap">
             <span class="unit prefix">$</span>
-            <input type="number" id="currentSavings" placeholder="50000" min="0" value="50000" />
+            <input type="number" id="tradBalance" min="0" value="120000" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="monthlyContribution">Monthly Contribution</label>
+          <label for="tradContrib">Traditional 401k Monthly Contribution</label>
           <div class="input-wrap">
             <span class="unit prefix">$</span>
-            <input type="number" id="monthlyContribution" placeholder="500" min="0" value="500" />
+            <input type="number" id="tradContrib" min="0" value="1000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="rothBalance">Roth IRA/401k Balance</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="rothBalance" min="0" value="40000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="rothContrib">Roth Monthly Contribution</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="rothContrib" min="0" value="500" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="taxableBalance">Taxable Brokerage Balance</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="taxableBalance" min="0" value="30000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="taxableContrib">Taxable Monthly Contribution</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="taxableContrib" min="0" value="300" />
           </div>
         </div>
 
         <div class="divider"></div>
+
+        <!-- SECTION: Precious Metals -->
+        <div class="section-label">Precious Metals</div>
+
+        <div class="form-group">
+          <label for="goldBalance">
+            Gold — Current Value
+            <span class="hint">physical gold, market value today</span>
+          </label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="goldBalance" min="0" value="25000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="goldReturn">Gold — Expected Annual Return</label>
+          <div class="input-wrap">
+            <input type="number" id="goldReturn" min="0" max="30" step="0.1" value="7" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="silverBalance">Silver — Current Value</label>
+          <div class="input-wrap">
+            <span class="unit prefix">$</span>
+            <input type="number" id="silverBalance" min="0" value="8000" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="silverReturn">Silver — Expected Annual Return</label>
+          <div class="input-wrap">
+            <input type="number" id="silverReturn" min="0" max="30" step="0.1" value="5" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- SECTION: Assumptions -->
+        <div class="section-label">Assumptions</div>
 
         <div class="form-group">
           <label for="annualReturn">
-            Expected Annual Return
-            <span class="hint">nominal, before inflation</span>
+            Expected Annual Market Return
+            <span class="hint">nominal, before inflation — applied to all investment accounts</span>
           </label>
           <div class="input-wrap">
-            <input type="number" id="annualReturn" placeholder="7" min="0" max="30" step="0.1" value="7" />
+            <input type="number" id="annualReturn" min="0" max="30" step="0.1" value="7" />
             <span class="unit">%</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label for="inflationRate">
-            Expected Inflation Rate
-            <span class="hint">average annual</span>
-          </label>
+          <label for="inflationRate">Expected Inflation Rate</label>
           <div class="input-wrap">
-            <input type="number" id="inflationRate" placeholder="3" min="0" max="20" step="0.1" value="3" />
+            <input type="number" id="inflationRate" min="0" max="20" step="0.1" value="3" />
             <span class="unit">%</span>
           </div>
         </div>
 
         <div class="divider"></div>
+
+        <!-- SECTION: Tax Rates -->
+        <div class="section-label">Tax Rates</div>
+
+        <div class="form-group">
+          <label for="tradTaxRate">
+            Traditional 401k / Taxable Withdrawal Rate
+            <span class="hint">effective rate you expect to pay in retirement</span>
+          </label>
+          <div class="input-wrap">
+            <input type="number" id="tradTaxRate" min="0" max="60" step="0.1" value="22" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="capGainsRate">
+            Capital Gains Rate — Taxable &amp; Metals
+            <span class="hint">long-term rate; precious metals may be higher (28% collectibles rate)</span>
+          </label>
+          <div class="input-wrap">
+            <input type="number" id="capGainsRate" min="0" max="40" step="0.1" value="15" />
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="roth-note">Roth: always 0% tax on withdrawals</div>
+
+        <div class="divider"></div>
+
+        <!-- SECTION: Retirement Income Goals -->
+        <div class="section-label">Retirement Income Goals</div>
 
         <div class="form-group">
           <label for="desiredIncome">
-            Desired Monthly Income
-            <span class="hint">in today's dollars</span>
+            Desired Monthly Income (today's $)
+            <span class="hint">after-tax amount you want to spend each month</span>
           </label>
           <div class="input-wrap">
             <span class="unit prefix">$</span>
-            <input type="number" id="desiredIncome" placeholder="5000" min="0" value="5000" />
+            <input type="number" id="desiredIncome" min="0" value="8000" />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="socialSecurity">
-            Expected Social Security
-            <span class="hint">monthly benefit</span>
-          </label>
+          <label for="socialSecurity">Expected Social Security</label>
           <div class="input-wrap">
             <span class="unit prefix">$</span>
-            <input type="number" id="socialSecurity" placeholder="1800" min="0" value="1800" />
+            <input type="number" id="socialSecurity" min="0" value="2200" />
+            <span class="unit">$/mo</span>
           </div>
         </div>
 
         <div class="divider"></div>
+
+        <!-- SECTION: Military Pension -->
+        <div class="section-label">Military Pension</div>
 
         <div class="form-group toggle-group">
           <label class="toggle-label">
             <input type="checkbox" id="reserveEnabled" />
-            <span>Navy Reserve Officer Pension</span>
+            <span>Enable Navy Reserve / Active Duty Pension</span>
           </label>
         </div>
 
         <div id="reserveSection" class="reserve-section hidden">
-          <p class="reserve-note">Uses 2025 base pay tables. Formula: (points ÷ 360) × rate × base pay.</p>
+          <p class="reserve-note">Uses 2025 base pay tables. Formula: (total points ÷ 360) × rate × base pay.</p>
+
+          <div class="form-group">
+            <label for="activeDutyYears">
+              Active Duty Years
+              <span class="hint">each year = 365 retirement points</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="activeDutyYears" min="0" max="40" value="0" />
+              <span class="unit">yrs</span>
+            </div>
+          </div>
+
+          <div class="computed-line" id="activeDutyPointsDisplay">Active duty points: 0</div>
+
+          <div class="form-group">
+            <label for="reservePoints">
+              Reserve Drill Points
+              <span class="hint">typically 63 pts/yr (15 membership + 48 drills); add points for any active service, schools, etc.</span>
+            </label>
+            <div class="input-wrap">
+              <input type="number" id="reservePoints" min="0" value="1260" />
+              <span class="unit">pts</span>
+            </div>
+          </div>
+
+          <div class="computed-line" id="totalPointsDisplay">Total retirement points: 1,260</div>
 
           <div class="form-group">
             <label for="reserveGrade">Pay Grade at Retirement</label>
@@ -132,19 +269,8 @@
           <div class="form-group">
             <label for="reserveYOS">Years of Service at Retirement</label>
             <div class="input-wrap">
-              <input type="number" id="reserveYOS" min="0" max="40" value="20" />
+              <input type="number" id="reserveYOS" min="0" max="40" value="22" />
               <span class="unit">yrs</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="reservePoints">
-              Total Retirement Points
-              <span class="hint">typical: 15 membership + 48 drills = ~63 pts/yr</span>
-            </label>
-            <div class="input-wrap">
-              <input type="number" id="reservePoints" min="0" value="1260" />
-              <span class="unit">pts</span>
             </div>
           </div>
 
@@ -161,7 +287,7 @@
           <div class="form-group">
             <label for="reservePensionAge">
               Age Pension Begins
-              <span class="hint">typically 60; may be earlier with qualifying active-duty service post-2008</span>
+              <span class="hint">typically 60; earlier if you served qualifying active periods post-2008</span>
             </label>
             <div class="input-wrap">
               <input type="number" id="reservePensionAge" min="50" max="75" value="60" />
@@ -171,6 +297,7 @@
 
           <div class="reserve-estimate" id="reserveEstimate">Estimated pension: —</div>
         </div>
+
       </section>
 
       <!-- ===== RESULTS ===== -->
@@ -181,10 +308,10 @@
           <span id="errorMessage"></span>
         </div>
 
-        <!-- Summary cards -->
+        <!-- Summary stat grid (2x2) -->
         <div class="summary-grid">
           <div class="stat-card">
-            <div class="stat-label">Projected Savings at Retirement</div>
+            <div class="stat-label">Total Portfolio at Retirement</div>
             <div class="stat-value" id="projectedSavings">—</div>
           </div>
           <div class="stat-card">
@@ -192,13 +319,20 @@
             <div class="stat-value" id="yearsToRetirement">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Affordable Monthly Income<span class="stat-sublabel"> (savings only)</span></div>
+            <div class="stat-label">After-Tax Monthly Income<span class="stat-sublabel"> (savings, 25-yr horizon)</span></div>
             <div class="stat-value" id="affordableIncome">—</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Total Monthly Income<span class="stat-sublabel" id="totalIncomeLabel"> (incl. Social Security)</span></div>
+            <div class="stat-label">Total Monthly Income<span class="stat-sublabel" id="totalIncomeLabel"> (incl. SS)</span></div>
             <div class="stat-value" id="totalMonthlyIncome">—</div>
           </div>
+        </div>
+
+        <!-- Portfolio breakdown bar -->
+        <div class="breakdown-card card">
+          <div class="breakdown-title">Portfolio at Retirement — Breakdown</div>
+          <div class="breakdown-bar" id="breakdownBar"></div>
+          <div class="breakdown-legend" id="breakdownLegend"></div>
         </div>
 
         <!-- Goal indicator -->
@@ -218,7 +352,7 @@
 
         <!-- Chart -->
         <div class="card chart-card">
-          <h3 class="chart-title">Savings Balance Over Time</h3>
+          <h3 class="chart-title">Portfolio Balance Over Time</h3>
           <div class="chart-legend">
             <span class="legend-dot green"></span><span>Accumulation</span>
             <span class="legend-dot orange"></span><span>Retirement drawdown</span>

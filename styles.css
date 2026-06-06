@@ -10,6 +10,7 @@
 :root {
   --navy: #1a2744;
   --navy-dark: #111c38;
+  --navy-light: #e8ecf4;
   --green: #2ecc71;
   --green-bg: #eafaf1;
   --green-border: #a9dfbf;
@@ -29,6 +30,13 @@
   --radius: 12px;
   --radius-sm: 8px;
   --transition: 0.2s ease;
+
+  /* Bucket colors */
+  --color-trad: #3498db;
+  --color-roth: #2ecc71;
+  --color-taxable: #9b59b6;
+  --color-gold: #f39c12;
+  --color-silver: #95a5a6;
 }
 
 html {
@@ -57,7 +65,7 @@ header {
 }
 
 .header-inner {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -77,7 +85,7 @@ header h1 {
    Layout
    ============================================================ */
 .container {
-  max-width: 1100px;
+  max-width: 1150px;
   margin: 0 auto;
   padding: 2rem 1.25rem;
   flex: 1;
@@ -85,7 +93,7 @@ header h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 380px 1fr;
   gap: 1.75rem;
   align-items: start;
 }
@@ -104,7 +112,14 @@ header h1 {
   padding: 1.75rem;
   position: sticky;
   top: 1.25rem;
+  max-height: calc(100vh - 2.5rem);
+  overflow-y: auto;
 }
+
+/* Thin scrollbar for inputs panel */
+.inputs-card::-webkit-scrollbar { width: 5px; }
+.inputs-card::-webkit-scrollbar-track { background: transparent; }
+.inputs-card::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
 
 .card-title {
   font-size: 1.05rem;
@@ -113,6 +128,22 @@ header h1 {
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
   border-bottom: 2px solid var(--gray-100);
+}
+
+/* ============================================================
+   Section labels
+   ============================================================ */
+.section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--navy);
+  margin-bottom: 0.85rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--navy-light);
+  border-radius: 4px;
+  display: inline-block;
 }
 
 /* ============================================================
@@ -171,6 +202,20 @@ header h1 {
   opacity: 0.5;
 }
 
+.input-wrap select {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--gray-800);
+  background: transparent;
+  cursor: pointer;
+  appearance: auto;
+  width: 100%;
+}
+
 .unit {
   padding: 0.55rem 0.65rem;
   font-size: 0.85rem;
@@ -191,6 +236,35 @@ header h1 {
   height: 1px;
   background: var(--gray-100);
   margin: 1.25rem 0;
+}
+
+/* ============================================================
+   Computed / read-only display lines
+   ============================================================ */
+.computed-line {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--navy);
+  background: var(--navy-light);
+  border-radius: 5px;
+  padding: 0.35rem 0.65rem;
+  margin-bottom: 0.9rem;
+  display: inline-block;
+  width: 100%;
+}
+
+/* ============================================================
+   Roth note (static green line)
+   ============================================================ */
+.roth-note {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1a7a45;
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  border-radius: 5px;
+  padding: 0.35rem 0.7rem;
+  margin-bottom: 1rem;
 }
 
 /* ============================================================
@@ -251,6 +325,63 @@ header h1 {
   color: var(--navy);
   margin-top: 0.4rem;
   letter-spacing: -0.5px;
+}
+
+/* ============================================================
+   Portfolio Breakdown bar
+   ============================================================ */
+.breakdown-card {
+  padding: 1.25rem 1.5rem;
+}
+
+.breakdown-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.75rem;
+}
+
+.breakdown-bar {
+  display: flex;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--gray-100);
+}
+
+.breakdown-segment {
+  transition: flex var(--transition);
+  cursor: default;
+}
+
+.breakdown-segment:first-child { border-radius: 4px 0 0 4px; }
+.breakdown-segment:last-child  { border-radius: 0 4px 4px 0; }
+.breakdown-segment:only-child  { border-radius: 4px; }
+
+.breakdown-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--gray-600);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 /* Goal indicator */
@@ -347,7 +478,7 @@ header h1 {
   vertical-align: middle;
 }
 
-.legend-dot.green { background: var(--green); }
+.legend-dot.green  { background: var(--green); }
 .legend-dot.orange { background: var(--orange); }
 
 .chart-wrap {
@@ -411,19 +542,6 @@ header h1 {
   padding: 0;
 }
 
-.input-wrap select {
-  flex: 1;
-  border: none;
-  outline: none;
-  padding: 0.55rem 0.65rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: var(--gray-800);
-  background: transparent;
-  cursor: pointer;
-  appearance: auto;
-}
-
 /* ============================================================
    Footer
    ============================================================ */
@@ -436,15 +554,17 @@ footer {
 }
 
 /* ============================================================
-   Responsive — tablet / mobile
+   Responsive
    ============================================================ */
-@media (max-width: 800px) {
+@media (max-width: 860px) {
   .layout {
     grid-template-columns: 1fr;
   }
 
   .inputs-card {
     position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
@@ -459,5 +579,9 @@ footer {
 
   .container {
     padding: 1.25rem 1rem;
+  }
+
+  .breakdown-legend {
+    gap: 0.4rem 0.75rem;
   }
 }
