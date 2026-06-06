@@ -1,0 +1,868 @@
+// inputs.js
+// Renders the six Inputs sub-tabs. Every field is bound to the shared `state`
+// object and persists via the debounced save(). Dynamic tables (accounts,
+// concentration, debt) support add/delete with stable ids, and all auto-calc
+// fields update live.
+
+import { state, save, saveNow } from "./state.js";
+import {
+  formatDollars,
+  formatPercent,
+  parseNumber,
+  applySignClass,
+  uid,
+} from "./utils.js";
+
+/* ------------------------------------------------------------------ *
+ * Small DOM helpers
+ * ------------------------------------------------------------------ */
+
+// Create an element with attributes and children.
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k === "html") node.innerHTML = v;
+    else if (k === "text") node.textContent = v;
+    else if (k.startsWith("on") && typeof v === "function") {
+      node.addEventListener(k.slice(2).toLowerCase(), v);
+    } else if (v != null && v !== false) {
+      node.setAttribute(k, v === true ? "" : v);
+    }
+  }
+  const kids = Array.isArray(children) ? children : [children];
+  for (const c of kids) {
+    if (c == null) continue;
+    node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+
+// A labelled form field wrapping a control.
+function field(label, control, { span2 = false, note = null } = {}) {
+  const wrap = el("div", { class: "field" + (span2 ? " span-2" : "") });
+  const lab = el("label", { text: label });
+  wrap.appendChild(lab);
+  wrap.appendChild(control);
+  if (note) wrap.appendChild(el("div", { class: "field-note", text: note }));
+  return wrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Bound input factories
+ *
+ * Each returns an <input>/<select> wired to a getter/setter into state.
+ * `kind` controls formatting:
+ *   "dollar"  -> $ + commas on blur, raw number stored
+ *   "percent" -> N% on blur, raw number stored
+ *   "number"  -> plain number
+ *   "text"    -> string
+ * `onCommit` fires after the value is written, for live recalcs.
+ * ------------------------------------------------------------------ */
+
+function displayValue(kind, raw) {
+  if (kind === "dollar") return formatDollars(raw);
+  if (kind === "percent") return formatPercent(raw);
+  return raw == null ? "" : String(raw);
+}
+
+function boundInput(kind, get, set, { onCommit = null, attrs = {} } = {}) {
+  const input = el("input", {
+    type: "text",
+    class: kind === "text" ? "" : "data-num",
+    ...attrs,
+  });
+  input.value = displayValue(kind, get());
+
+  // While focused, show the bare numeric value for easy editing.
+  input.addEventListener("focus", () => {
+    if (kind === "dollar" || kind === "percent") {
+      const n = get();
+      input.value = n === 0 || n == null ? "" : String(n);
+    }
+    input.select();
+  });
+
+  const commit = () => {
+    let val;
+    if (kind === "text") {
+      val = input.value;
+    } else {
+      val = parseNumber(input.value);
+    }
+    set(val);
+    input.value = displayValue(kind, val);
+    save();
+    if (onCommit) onCommit();
+  };
+
+  input.addEventListener("blur", commit);
+  input.addEventListener("change", commit);
+  return input;
+}
+
+function boundSelect(options, get, set, { onCommit = null, attrs = {} } = {}) {
+  const sel = el("select", attrs);
+  const current = String(get());
+  for (const opt of options) {
+    const value = typeof opt === "object" ? opt.value : opt;
+    const label = typeof opt === "object" ? opt.label : opt;
+    const o = el("option", { value }, label);
+    if (String(value) === current) o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.addEventListener("change", () => {
+    set(sel.value);
+    save();
+    if (onCommit) onCommit();
+  });
+  return sel;
+}
+
+// A read-only computed display line (label + value).
+function readonlyField(label, initialText) {
+  const out = el("div", { class: "readonly-line" });
+  out.innerHTML = label + " <span class='accent'></span>";
+  const span = out.querySelector(".accent");
+  span.textContent = initialText;
+  return { node: out, set: (t) => (span.textContent = t) };
+}
+
+/* ================================================================== *
+ * SUB-TAB 1: Income
+ * ================================================================== */
+
+function renderIncome(root) {
+  const inc = state.inputs.income;
+  root.innerHTML = "";
+
+  const card = el("div", { class: "card stagger" });
+  card.appendChild(el("h3", { class: "card-title", text: "Income" }));
+
+  const grid = el("div", { class: "form-grid" });
+
+  // Earner A bonus auto-calc display.
+  const bonusOut = readonlyField(
+    "Earner A bonus amount:",
+    formatDollars(inc.earnerABase * (inc.earnerABonusPct / 100))
+  );
+  const recalcBonus = () =>
+    bonusOut.set(
+      formatDollars(inc.earnerABase * (inc.earnerABonusPct / 100))
+    );
+
+  grid.appendChild(
+    field(
+      "Earner A — W-2 Base Salary",
+      boundInput("dollar", () => inc.earnerABase, (v) => (inc.earnerABase = v), {
+        onCommit: recalcBonus,
+      })
+    )
+  );
+  grid.appendChild(
+    field(
+      "Earner A — Annual Bonus (%)",
+      boundInput(
+        "percent",
+        () => inc.earnerABonusPct,
+        (v) => (inc.earnerABonusPct = v),
+        { onCommit: recalcBonus }
+      )
+    )
+  );
+  grid.appendChild(field("Earner A — Bonus (auto-calc)", bonusOut.node, { span2: false }));
+  grid.appendChild(
+    field(
+      "Earner A — Bonus Withholding Rate (%)",
+      boundInput(
+        "percent",
+        () => inc.earnerABonusWithholdingPct,
+        (v) => (inc.earnerABonusWithholdingPct = v)
+      )
+    )
+  );
+  grid.appendChild(
+    field(
+      "Earner B — W-2 Base Salary",
+      boundInput("dollar", () => inc.earnerBBase, (v) => (inc.earnerBBase = v))
+    )
+  );
+  grid.appendChild(
+    field(
+      "Earner B — Total Annual Comp",
+      boundInput(
+        "dollar",
+        () => inc.earnerBTotalComp,
+        (v) => (inc.earnerBTotalComp = v)
+      )
+    )
+  );
+  grid.appendChild(
+    field(
+      "Federal Marginal Tax Rate (%)",
+      boundInput(
+        "percent",
+        () => inc.fedMarginalPct,
+        (v) => (inc.fedMarginalPct = v)
+      )
+    )
+  );
+  grid.appendChild(
+    field(
+      "Filing Status",
+      boundSelect(
+        ["Married Filing Jointly"],
+        () => inc.filingStatus,
+        (v) => (inc.filingStatus = v),
+        { attrs: { disabled: true } }
+      )
+    )
+  );
+  grid.appendChild(
+    field(
+      "Standard Deduction (MFJ)",
+      boundInput(
+        "dollar",
+        () => inc.standardDeduction,
+        (v) => (inc.standardDeduction = v)
+      )
+    )
+  );
+
+  card.appendChild(grid);
+
+  const medicare = el("div", {
+    class: "readonly-line",
+    html:
+      "Additional Medicare Tax: <span class='accent'>0.9%</span> on earned income above $250,000 (MFJ)",
+  });
+  medicare.style.marginTop = "16px";
+  card.appendChild(medicare);
+
+  root.appendChild(card);
+}
+
+/* ================================================================== *
+ * SUB-TAB 2: Liquid Investments
+ * ================================================================== */
+
+const ACCOUNT_TYPES = [
+  "Taxable Brokerage",
+  "Traditional 401(k)",
+  "Roth IRA",
+  "HSA",
+  "Deferred Comp",
+  "Cash-Banking",
+  "529 Education",
+];
+
+function renderLiquid(root) {
+  root.innerHTML = "";
+  const wrap = el("div", { class: "stagger" });
+
+  // ---- Accounts table ----
+  const card = el("div", { class: "card" });
+  card.appendChild(el("h3", { class: "card-title", text: "Liquid Investment Accounts" }));
+
+  const table = el("table");
+  table.appendChild(
+    el("thead", {}, el("tr", {}, [
+      el("th", { text: "Account Name" }),
+      el("th", { text: "Owner" }),
+      el("th", { text: "Account Type" }),
+      el("th", { class: "num", text: "Current Balance" }),
+      el("th", { text: "Notes" }),
+      el("th", { text: "" }),
+    ]))
+  );
+  const tbody = el("tbody");
+  table.appendChild(tbody);
+
+  const totalCell = el("span", { class: "amount", text: "" });
+  const tfoot = el(
+    "tfoot",
+    {},
+    el("tr", {}, [
+      el("td", { class: "label", colspan: 3, text: "Total Liquid" }),
+      el("td", { class: "num" }, totalCell),
+      el("td", { colspan: 2 }),
+    ])
+  );
+  table.appendChild(tfoot);
+
+  const refreshTotal = () => {
+    const total = state.inputs.accounts.reduce((s, a) => s + Number(a.balance || 0), 0);
+    totalCell.textContent = formatDollars(total);
+  };
+
+  const addAccountRow = (acct) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, boundInput("text", () => acct.name, (v) => (acct.name = v))));
+    tr.appendChild(el("td", {}, boundInput("text", () => acct.owner, (v) => (acct.owner = v))));
+    tr.appendChild(
+      el("td", {}, boundSelect(ACCOUNT_TYPES, () => acct.type, (v) => (acct.type = v)))
+    );
+    tr.appendChild(
+      el("td", { class: "num" }, boundInput("dollar", () => acct.balance, (v) => (acct.balance = v), {
+        onCommit: refreshTotal,
+      }))
+    );
+    tr.appendChild(el("td", {}, boundInput("text", () => acct.notes, (v) => (acct.notes = v))));
+    const del = el("td", {}, el("button", {
+      class: "btn-del",
+      title: "Delete account",
+      text: "\u{1F5D1}",
+      onclick: () => {
+        state.inputs.accounts = state.inputs.accounts.filter((a) => a.id !== acct.id);
+        tr.remove();
+        refreshTotal();
+        saveNow();
+      },
+    }));
+    tr.appendChild(del);
+    tbody.appendChild(tr);
+  };
+
+  state.inputs.accounts.forEach(addAccountRow);
+  refreshTotal();
+
+  card.appendChild(table);
+  card.appendChild(
+    el("button", {
+      class: "btn btn-add",
+      text: "+ Add Account",
+      onclick: () => {
+        const acct = { id: uid(), name: "", owner: "", type: ACCOUNT_TYPES[0], balance: 0, notes: "" };
+        state.inputs.accounts.push(acct);
+        addAccountRow(acct);
+        refreshTotal();
+        saveNow();
+      },
+    })
+  );
+  wrap.appendChild(card);
+
+  // ---- Taxable Concentration (collapsible) ----
+  const details = el("details", { open: true });
+  details.appendChild(el("summary", { text: "Taxable Concentration" }));
+  const body = el("div", { class: "details-body" });
+
+  const ctable = el("table");
+  ctable.appendChild(
+    el("thead", {}, el("tr", {}, [
+      el("th", { text: "Holding" }),
+      el("th", { class: "num", text: "Current Value" }),
+      el("th", { class: "num", text: "% of Total" }),
+      el("th", { text: "Notes" }),
+      el("th", { text: "" }),
+    ]))
+  );
+  const cbody = el("tbody");
+  ctable.appendChild(cbody);
+
+  const ctotalCell = el("span", { class: "amount", text: "" });
+  ctable.appendChild(
+    el("tfoot", {}, el("tr", {}, [
+      el("td", { class: "label", text: "Total" }),
+      el("td", { class: "num" }, ctotalCell),
+      el("td", { colspan: 3 }),
+    ]))
+  );
+
+  // Each row keeps a reference to its percent cell so we can re-distribute live.
+  const pctCells = new Map();
+
+  const refreshConcentration = () => {
+    const total = state.inputs.concentration.reduce((s, h) => s + Number(h.value || 0), 0);
+    ctotalCell.textContent = formatDollars(total);
+    for (const h of state.inputs.concentration) {
+      const cell = pctCells.get(h.id);
+      if (!cell) continue;
+      const pct = total > 0 ? (Number(h.value || 0) / total) * 100 : 0;
+      cell.textContent = formatPercent(pct, { decimals: 1 });
+    }
+  };
+
+  const addHoldingRow = (h) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, boundInput("text", () => h.holding, (v) => (h.holding = v))));
+    tr.appendChild(
+      el("td", { class: "num" }, boundInput("dollar", () => h.value, (v) => (h.value = v), {
+        onCommit: refreshConcentration,
+      }))
+    );
+    const pctCell = el("td", { class: "num col-pct", text: "" });
+    pctCells.set(h.id, pctCell);
+    tr.appendChild(pctCell);
+    tr.appendChild(el("td", {}, boundInput("text", () => h.notes, (v) => (h.notes = v))));
+    tr.appendChild(el("td", {}, el("button", {
+      class: "btn-del",
+      title: "Delete holding",
+      text: "\u{1F5D1}",
+      onclick: () => {
+        state.inputs.concentration = state.inputs.concentration.filter((x) => x.id !== h.id);
+        pctCells.delete(h.id);
+        tr.remove();
+        refreshConcentration();
+        saveNow();
+      },
+    })));
+    cbody.appendChild(tr);
+  };
+
+  state.inputs.concentration.forEach(addHoldingRow);
+  refreshConcentration();
+
+  body.appendChild(ctable);
+  body.appendChild(
+    el("button", {
+      class: "btn btn-add",
+      text: "+ Add Holding",
+      onclick: () => {
+        const h = { id: uid(), holding: "", value: 0, notes: "" };
+        state.inputs.concentration.push(h);
+        addHoldingRow(h);
+        refreshConcentration();
+        saveNow();
+      },
+    })
+  );
+  details.appendChild(body);
+  wrap.appendChild(details);
+
+  root.appendChild(wrap);
+}
+
+/* ================================================================== *
+ * SUB-TAB 3: Alternative & Illiquid Assets
+ * ================================================================== */
+
+function renderAlternatives(root) {
+  root.innerHTML = "";
+  const alt = state.inputs.alternatives;
+  const card = el("div", { class: "card stagger" });
+  card.appendChild(el("h3", { class: "card-title", text: "Alternative & Illiquid Assets" }));
+
+  const grid = el("div", { class: "form-grid" });
+
+  grid.appendChild(field("Private Units — Placeholder Value",
+    boundInput("dollar", () => alt.privateUnitsValue, (v) => (alt.privateUnitsValue = v))));
+  grid.appendChild(field("Units Owned",
+    boundInput("number", () => alt.unitsOwned, (v) => (alt.unitsOwned = v))));
+  grid.appendChild(field("Distribution Threshold / unit",
+    boundInput("dollar", () => alt.distributionThreshold, (v) => (alt.distributionThreshold = v))));
+
+  // Private Fund + unfunded auto-calc
+  const unfunded = readonlyField("Remaining Unfunded:",
+    formatDollars(alt.fundCommitment - alt.fundDeployed));
+  const recalcUnfunded = () =>
+    unfunded.set(formatDollars(alt.fundCommitment - alt.fundDeployed));
+
+  grid.appendChild(field("Private Fund — Deployed Capital",
+    boundInput("dollar", () => alt.fundDeployed, (v) => (alt.fundDeployed = v), { onCommit: recalcUnfunded })));
+  grid.appendChild(field("Private Fund — Total Commitment",
+    boundInput("dollar", () => alt.fundCommitment, (v) => (alt.fundCommitment = v), { onCommit: recalcUnfunded })));
+  grid.appendChild(field("Private Fund — Remaining Unfunded (auto-calc)", unfunded.node));
+
+  // Gold
+  const goldVal = readonlyField("Gold Value:", formatDollars(alt.goldOunces * alt.goldPrice));
+  const recalcGold = () => goldVal.set(formatDollars(alt.goldOunces * alt.goldPrice));
+  grid.appendChild(field("Physical Gold — Ounces",
+    boundInput("number", () => alt.goldOunces, (v) => (alt.goldOunces = v), { onCommit: recalcGold })));
+  grid.appendChild(field("Gold Price / oz",
+    boundInput("dollar", () => alt.goldPrice, (v) => (alt.goldPrice = v), { onCommit: recalcGold })));
+  grid.appendChild(field("Gold Value (auto-calc)", goldVal.node, { note: "Collectibles tax rate: 28%" }));
+
+  // Silver
+  const silverVal = readonlyField("Silver Value:", formatDollars(alt.silverOunces * alt.silverPrice));
+  const recalcSilver = () => silverVal.set(formatDollars(alt.silverOunces * alt.silverPrice));
+  grid.appendChild(field("Physical Silver — Ounces",
+    boundInput("number", () => alt.silverOunces, (v) => (alt.silverOunces = v), { onCommit: recalcSilver })));
+  grid.appendChild(field("Silver Price / oz",
+    boundInput("dollar", () => alt.silverPrice, (v) => (alt.silverPrice = v), { onCommit: recalcSilver })));
+  grid.appendChild(field("Silver Value (auto-calc)", silverVal.node, { note: "Collectibles tax rate: 28%" }));
+
+  // Misc
+  grid.appendChild(field("Bitcoin",
+    boundInput("dollar", () => alt.bitcoin, (v) => (alt.bitcoin = v))));
+  grid.appendChild(field("Reward Points",
+    boundInput("number", () => alt.rewardPoints, (v) => (alt.rewardPoints = v))));
+
+  card.appendChild(grid);
+  root.appendChild(card);
+}
+
+/* ================================================================== *
+ * SUB-TAB 4: Real Estate
+ * ================================================================== */
+
+// A reusable computed-stat strip; returns the row + a setter keyed by label.
+function statStrip(items) {
+  const row = el("div", { class: "stat-row" });
+  const setters = {};
+  for (const it of items) {
+    const valEl = el("div", { class: "stat-value", text: it.value });
+    if (it.sign != null) applySignClass(valEl, it.sign);
+    const stat = el("div", { class: "stat" }, [
+      el("div", { class: "stat-label", text: it.label }),
+      valEl,
+    ]);
+    row.appendChild(stat);
+    setters[it.key] = (text, sign) => {
+      valEl.textContent = text;
+      if (sign != null) applySignClass(valEl, sign);
+    };
+  }
+  return { node: row, setters };
+}
+
+function renderRealEstate(root) {
+  root.innerHTML = "";
+  const re = state.inputs.realEstate;
+  const wrap = el("div", { class: "stagger" });
+
+  // ---- Primary Residence ----
+  {
+    const p = re.primary;
+    const details = el("details", { open: true });
+    details.appendChild(el("summary", { text: "Primary Residence" }));
+    const body = el("div", { class: "details-body" });
+    const grid = el("div", { class: "form-grid" });
+
+    const strip = statStrip([
+      { key: "gain", label: "Unrealized Gain", value: "" },
+      { key: "taxable", label: "Taxable Gain at Sale", value: "" },
+      { key: "equity", label: "Equity", value: "" },
+    ]);
+    const recalc = () => {
+      const gain = p.value - p.purchasePrice - p.improvements;
+      const taxable = Math.max(0, gain - 500000);
+      const equity = p.value - p.mortgageBalance;
+      strip.setters.gain(formatDollars(gain), gain);
+      strip.setters.taxable(formatDollars(taxable), taxable === 0 ? 0 : -1);
+      strip.setters.equity(formatDollars(equity), equity);
+    };
+
+    grid.appendChild(field("Label / Nickname",
+      boundInput("text", () => p.label, (v) => (p.label = v), { attrs: { class: "" } })));
+    grid.appendChild(field("Estimated Current Value",
+      boundInput("dollar", () => p.value, (v) => (p.value = v), { onCommit: recalc })));
+    grid.appendChild(field("Purchase Price",
+      boundInput("dollar", () => p.purchasePrice, (v) => (p.purchasePrice = v), { onCommit: recalc })));
+    grid.appendChild(field("Purchase Year",
+      boundInput("number", () => p.purchaseYear, (v) => (p.purchaseYear = v))));
+    grid.appendChild(field("Capital Improvements",
+      boundInput("dollar", () => p.improvements, (v) => (p.improvements = v), { onCommit: recalc })));
+    grid.appendChild(field("Mortgage Balance",
+      boundInput("dollar", () => p.mortgageBalance, (v) => (p.mortgageBalance = v), { onCommit: recalc })));
+    grid.appendChild(field("Interest Rate (%)",
+      boundInput("percent", () => p.interestRate, (v) => (p.interestRate = v))));
+    grid.appendChild(field("Monthly P&I",
+      boundInput("dollar", () => p.monthlyPI, (v) => (p.monthlyPI = v))));
+    grid.appendChild(field("Annual Property Tax",
+      boundInput("dollar", () => p.annualPropertyTax, (v) => (p.annualPropertyTax = v))));
+
+    body.appendChild(grid);
+    const note = el("div", { class: "readonly-line", html: "§121 exclusion (MFJ): <span class='accent'>$500,000</span>" });
+    note.style.marginTop = "16px";
+    body.appendChild(note);
+    body.appendChild(strip.node);
+    recalc();
+    details.appendChild(body);
+    wrap.appendChild(details);
+  }
+
+  // ---- Rental ----
+  {
+    const r = re.rental;
+    const details = el("details");
+    details.appendChild(el("summary", { text: "Rental Property" }));
+    const body = el("div", { class: "details-body" });
+    const grid = el("div", { class: "form-grid" });
+
+    const strip = statStrip([
+      { key: "net", label: "Annual Net Rental Income", value: "" },
+      { key: "equity", label: "Equity", value: "" },
+    ]);
+    const recalc = () => {
+      const net = r.annualGrossRent * (1 - r.mgmtFeePct / 100);
+      const equity = r.value - r.mortgageBalance;
+      strip.setters.net(formatDollars(net), net);
+      strip.setters.equity(formatDollars(equity), equity);
+    };
+
+    grid.appendChild(field("Label / Nickname",
+      boundInput("text", () => r.label, (v) => (r.label = v))));
+    grid.appendChild(field("Estimated Current Value",
+      boundInput("dollar", () => r.value, (v) => (r.value = v), { onCommit: recalc })));
+    grid.appendChild(field("Mortgage Balance",
+      boundInput("dollar", () => r.mortgageBalance, (v) => (r.mortgageBalance = v), { onCommit: recalc })));
+    grid.appendChild(field("Interest Rate (%)",
+      boundInput("percent", () => r.interestRate, (v) => (r.interestRate = v))));
+    grid.appendChild(field("Monthly P&I",
+      boundInput("dollar", () => r.monthlyPI, (v) => (r.monthlyPI = v))));
+    grid.appendChild(field("Annual Gross Rental Income",
+      boundInput("dollar", () => r.annualGrossRent, (v) => (r.annualGrossRent = v), { onCommit: recalc })));
+    grid.appendChild(field("Property Management Fee (%)",
+      boundInput("percent", () => r.mgmtFeePct, (v) => (r.mgmtFeePct = v), { onCommit: recalc })));
+
+    body.appendChild(grid);
+    body.appendChild(strip.node);
+    recalc();
+    details.appendChild(body);
+    wrap.appendChild(details);
+  }
+
+  // ---- Farm ----
+  {
+    const f = re.farm;
+    const details = el("details");
+    details.appendChild(el("summary", { text: "Farm Land" }));
+    const body = el("div", { class: "details-body" });
+    const grid = el("div", { class: "form-grid" });
+
+    const strip = statStrip([
+      { key: "cfd", label: "Total CFD Balance", value: "" },
+      { key: "pmt", label: "Total Monthly CFD Payment", value: "" },
+      { key: "equity", label: "Equity", value: "" },
+    ]);
+    const recalc = () => {
+      const cfd = Number(f.cfdBalanceA) + Number(f.cfdBalanceB);
+      const pmt = Number(f.monthlyPaymentA) + Number(f.monthlyPaymentB);
+      const equity = f.value - cfd;
+      strip.setters.cfd(formatDollars(cfd), -1);
+      strip.setters.pmt(formatDollars(pmt));
+      strip.setters.equity(formatDollars(equity), equity);
+    };
+
+    grid.appendChild(field("Label / Nickname",
+      boundInput("text", () => f.label, (v) => (f.label = v))));
+    grid.appendChild(field("Total Acres",
+      boundInput("number", () => f.acres, (v) => (f.acres = v))));
+    grid.appendChild(field("Estimated Current Value",
+      boundInput("dollar", () => f.value, (v) => (f.value = v), { onCommit: recalc })));
+    grid.appendChild(field("CFD Balance A",
+      boundInput("dollar", () => f.cfdBalanceA, (v) => (f.cfdBalanceA = v), { onCommit: recalc })));
+    grid.appendChild(field("CFD Rate A (%)",
+      boundInput("percent", () => f.cfdRateA, (v) => (f.cfdRateA = v))));
+    grid.appendChild(field("Monthly Payment A",
+      boundInput("dollar", () => f.monthlyPaymentA, (v) => (f.monthlyPaymentA = v), { onCommit: recalc })));
+    grid.appendChild(field("CFD Balance B",
+      boundInput("dollar", () => f.cfdBalanceB, (v) => (f.cfdBalanceB = v), { onCommit: recalc })));
+    grid.appendChild(field("CFD Rate B (%)",
+      boundInput("percent", () => f.cfdRateB, (v) => (f.cfdRateB = v))));
+    grid.appendChild(field("Monthly Payment B",
+      boundInput("dollar", () => f.monthlyPaymentB, (v) => (f.monthlyPaymentB = v), { onCommit: recalc })));
+    grid.appendChild(field("Annual Farm Expenses",
+      boundInput("dollar", () => f.annualExpenses, (v) => (f.annualExpenses = v))));
+    grid.appendChild(field("Annual Farm Income",
+      boundInput("dollar", () => f.annualIncome, (v) => (f.annualIncome = v))));
+
+    body.appendChild(grid);
+    body.appendChild(strip.node);
+    recalc();
+    details.appendChild(body);
+    wrap.appendChild(details);
+  }
+
+  root.appendChild(wrap);
+}
+
+/* ================================================================== *
+ * SUB-TAB 5: Debt
+ * ================================================================== */
+
+function renderDebt(root) {
+  root.innerHTML = "";
+  const card = el("div", { class: "card stagger" });
+  card.appendChild(el("h3", { class: "card-title", text: "Debt" }));
+
+  const table = el("table");
+  table.appendChild(
+    el("thead", {}, el("tr", {}, [
+      el("th", { text: "Debt Name" }),
+      el("th", { text: "Lender" }),
+      el("th", { class: "num", text: "Balance" }),
+      el("th", { class: "num", text: "Rate" }),
+      el("th", { class: "num", text: "Monthly Payment" }),
+      el("th", { text: "" }),
+    ]))
+  );
+  const tbody = el("tbody");
+  table.appendChild(tbody);
+
+  const totalBalCell = el("span", { class: "amount", text: "" });
+  const totalMoCell = el("span", { class: "amount", text: "" });
+  const totalYrCell = el("span", { class: "amount", text: "" });
+  table.appendChild(
+    el("tfoot", {}, [
+      el("tr", {}, [
+        el("td", { class: "label", colspan: 2, text: "Total Debt" }),
+        el("td", { class: "num" }, totalBalCell),
+        el("td", {}),
+        el("td", {}),
+        el("td", {}),
+      ]),
+      el("tr", {}, [
+        el("td", { class: "label", colspan: 2, text: "Total Monthly Debt Service" }),
+        el("td", {}),
+        el("td", {}),
+        el("td", { class: "num" }, totalMoCell),
+        el("td", {}),
+      ]),
+      el("tr", {}, [
+        el("td", { class: "label", colspan: 2, text: "Total Annual Debt Service" }),
+        el("td", {}),
+        el("td", {}),
+        el("td", { class: "num" }, totalYrCell),
+        el("td", {}),
+      ]),
+    ])
+  );
+
+  const refreshTotals = () => {
+    const bal = state.inputs.debt.reduce((s, d) => s + Number(d.balance || 0), 0);
+    const mo = state.inputs.debt.reduce((s, d) => s + Number(d.payment || 0), 0);
+    totalBalCell.textContent = formatDollars(bal);
+    totalMoCell.textContent = formatDollars(mo);
+    totalYrCell.textContent = formatDollars(mo * 12);
+  };
+
+  const addDebtRow = (d) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, boundInput("text", () => d.name, (v) => (d.name = v))));
+    tr.appendChild(el("td", {}, boundInput("text", () => d.lender, (v) => (d.lender = v))));
+    tr.appendChild(el("td", { class: "num" },
+      boundInput("dollar", () => d.balance, (v) => (d.balance = v), { onCommit: refreshTotals })));
+    tr.appendChild(el("td", { class: "num" },
+      boundInput("percent", () => d.rate, (v) => (d.rate = v))));
+    tr.appendChild(el("td", { class: "num" },
+      boundInput("dollar", () => d.payment, (v) => (d.payment = v), { onCommit: refreshTotals })));
+    tr.appendChild(el("td", {}, el("button", {
+      class: "btn-del",
+      title: "Delete debt",
+      text: "\u{1F5D1}",
+      onclick: () => {
+        state.inputs.debt = state.inputs.debt.filter((x) => x.id !== d.id);
+        tr.remove();
+        refreshTotals();
+        saveNow();
+      },
+    })));
+    tbody.appendChild(tr);
+  };
+
+  state.inputs.debt.forEach(addDebtRow);
+  refreshTotals();
+
+  card.appendChild(table);
+  card.appendChild(el("button", {
+    class: "btn btn-add",
+    text: "+ Add Debt",
+    onclick: () => {
+      const d = { id: uid(), name: "", lender: "", balance: 0, rate: 0, payment: 0 };
+      state.inputs.debt.push(d);
+      addDebtRow(d);
+      refreshTotals();
+      saveNow();
+    },
+  }));
+  root.appendChild(card);
+}
+
+/* ================================================================== *
+ * SUB-TAB 6: Military & Benefits
+ * ================================================================== */
+
+const SS_FACTORS = { 62: 0.7, 67: 1.0, 70: 1.24 };
+
+function renderMilitary(root) {
+  root.innerHTML = "";
+  const m = state.inputs.military;
+  const card = el("div", { class: "card stagger" });
+  card.appendChild(el("h3", { class: "card-title", text: "Military & Benefits" }));
+
+  const grid = el("div", { class: "form-grid" });
+
+  // Pension auto-calc
+  const pensionOut = readonlyField("Estimated Annual Pension:",
+    formatDollars(m.high3 * (m.pensionMultiplierPct / 100)));
+  const recalcPension = () =>
+    pensionOut.set(formatDollars(m.high3 * (m.pensionMultiplierPct / 100)));
+
+  grid.appendChild(field("Pension Multiplier (%)",
+    boundInput("percent", () => m.pensionMultiplierPct, (v) => (m.pensionMultiplierPct = v), { onCommit: recalcPension })));
+  grid.appendChild(field("High-3 Average Base Pay",
+    boundInput("dollar", () => m.high3, (v) => (m.high3 = v), { onCommit: recalcPension })));
+  grid.appendChild(field("Estimated Annual Pension (auto-calc)", pensionOut.node));
+  grid.appendChild(field("Pension Start Age",
+    boundInput("number", () => m.pensionStartAge, (v) => (m.pensionStartAge = v))));
+  grid.appendChild(field("VA Disability Rating (%)",
+    boundInput("percent", () => m.vaRatingPct, (v) => (m.vaRatingPct = v))));
+  grid.appendChild(field("Annual VA Disability — tax-free",
+    boundInput("dollar", () => m.vaAnnual, (v) => (m.vaAnnual = v))));
+
+  // CRDP toggle
+  const toggle = el("div", { class: "toggle-group" });
+  const yesBtn = el("button", { type: "button", text: "Yes" });
+  const noBtn = el("button", { type: "button", text: "No" });
+  const syncToggle = () => {
+    yesBtn.classList.toggle("active", m.crdpEligible === true);
+    noBtn.classList.toggle("active", m.crdpEligible === false);
+  };
+  yesBtn.addEventListener("click", () => { m.crdpEligible = true; syncToggle(); save(); });
+  noBtn.addEventListener("click", () => { m.crdpEligible = false; syncToggle(); save(); });
+  toggle.appendChild(yesBtn);
+  toggle.appendChild(noBtn);
+  syncToggle();
+  grid.appendChild(field("CRDP Eligible", toggle));
+
+  // ---- Social Security: Earner A ----
+  const ssAOut = readonlyField("Annual benefit at selected age:",
+    formatDollars(m.ssAFull67 * SS_FACTORS[m.ssAClaimAge]));
+  const recalcSSA = () =>
+    ssAOut.set(formatDollars(m.ssAFull67 * (SS_FACTORS[m.ssAClaimAge] || 1)));
+
+  grid.appendChild(field("Earner A SS — Full Benefit at 67",
+    boundInput("dollar", () => m.ssAFull67, (v) => (m.ssAFull67 = v), { onCommit: recalcSSA })));
+  grid.appendChild(field("Earner A SS — Claiming Age",
+    boundSelect(["62", "67", "70"], () => m.ssAClaimAge, (v) => (m.ssAClaimAge = Number(v)), { onCommit: recalcSSA })));
+  grid.appendChild(field("Earner A SS — Benefit (auto-calc)", ssAOut.node));
+
+  // ---- Social Security: Earner B ----
+  const ssBOut = readonlyField("Annual benefit at selected age:",
+    formatDollars(m.ssBFull67 * SS_FACTORS[m.ssBClaimAge]));
+  const recalcSSB = () =>
+    ssBOut.set(formatDollars(m.ssBFull67 * (SS_FACTORS[m.ssBClaimAge] || 1)));
+
+  grid.appendChild(field("Earner B SS — Full Benefit at 67",
+    boundInput("dollar", () => m.ssBFull67, (v) => (m.ssBFull67 = v), { onCommit: recalcSSB })));
+  grid.appendChild(field("Earner B SS — Claiming Age",
+    boundSelect(["62", "67", "70"], () => m.ssBClaimAge, (v) => (m.ssBClaimAge = Number(v)), { onCommit: recalcSSB })));
+  grid.appendChild(field("Earner B SS — Benefit (auto-calc)", ssBOut.node));
+
+  card.appendChild(grid);
+  root.appendChild(card);
+}
+
+/* ================================================================== *
+ * Sub-tab registry + dispatcher
+ * ================================================================== */
+
+const RENDERERS = {
+  income: ["sub-income", renderIncome],
+  liquid: ["sub-liquid", renderLiquid],
+  alternatives: ["sub-alternatives", renderAlternatives],
+  realestate: ["sub-realestate", renderRealEstate],
+  debt: ["sub-debt", renderDebt],
+  military: ["sub-military", renderMilitary],
+};
+
+// Render one sub-tab into its container (idempotent — clears first).
+export function renderSubTab(key) {
+  const entry = RENDERERS[key];
+  if (!entry) return;
+  const [containerId, renderer] = entry;
+  const root = document.getElementById(containerId);
+  if (root) renderer(root);
+}

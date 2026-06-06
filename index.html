@@ -1,380 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Retirement Calculator</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <header>
-    <div class="header-inner">
-      <h1>Retirement Calculator</h1>
-      <p class="header-subtitle">Bespoke planning for Navy Reserve Officers</p>
-    </div>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance Dashboard</title>
 
-  <main class="container">
-    <div class="layout">
+    <!-- Fonts: Syne for headings/labels, DM Mono for numbers/data -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
-      <!-- ===== INPUTS ===== -->
-      <section class="card inputs-card" id="inputs-card">
-        <h2 class="card-title">Your Information</h2>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <h1 class="brand">Finance<span class="accent">/</span>Dashboard</h1>
+        <span class="tagline">Local-only · placeholder data</span>
+      </header>
 
-        <!-- SECTION: Personal -->
-        <div class="section-label">Personal</div>
+      <!-- Top navigation -->
+      <nav class="nav" id="mainNav">
+        <button class="nav-btn" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="inputs">Inputs</button>
+        <button class="nav-btn" data-tab="tax">Tax Projector</button>
+        <button class="nav-btn" data-tab="retirement">Retirement Modeler</button>
+        <button class="nav-btn" data-tab="scenarios">Scenarios</button>
+        <button class="nav-btn" data-tab="export">Export</button>
+      </nav>
 
-        <div class="form-group">
-          <label for="currentAge">Current Age</label>
-          <div class="input-wrap">
-            <input type="number" id="currentAge" min="1" max="99" value="38" />
-            <span class="unit">yrs</span>
-          </div>
+      <!-- ============================ PLACEHOLDER SECTIONS ===================== -->
+      <section class="section" id="tab-dashboard">
+        <div class="card placeholder">
+          <div class="ph-title">Dashboard</div>
+          <div class="ph-badge">Coming soon</div>
+          <p class="ph-desc">
+            A consolidated net-worth and cash-flow overview rolling up every
+            input section into headline numbers and charts.
+          </p>
         </div>
-
-        <div class="form-group">
-          <label for="retirementAge">Retirement Age</label>
-          <div class="input-wrap">
-            <input type="number" id="retirementAge" min="1" max="99" value="60" />
-            <span class="unit">yrs</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- SECTION: Investment Accounts -->
-        <div class="section-label">Investment Accounts</div>
-
-        <div class="form-group">
-          <label for="tradBalance">Traditional 401k Balance</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="tradBalance" min="0" value="120000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="tradContrib">Traditional 401k Monthly Contribution</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="tradContrib" min="0" value="1000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="rothBalance">Roth IRA/401k Balance</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="rothBalance" min="0" value="40000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="rothContrib">Roth Monthly Contribution</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="rothContrib" min="0" value="500" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="taxableBalance">Taxable Brokerage Balance</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="taxableBalance" min="0" value="30000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="taxableContrib">Taxable Monthly Contribution</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="taxableContrib" min="0" value="300" />
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- SECTION: Precious Metals -->
-        <div class="section-label">Precious Metals</div>
-
-        <div class="form-group">
-          <label for="goldBalance">
-            Gold — Current Value
-            <span class="hint">physical gold, market value today</span>
-          </label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="goldBalance" min="0" value="25000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="goldReturn">Gold — Expected Annual Return</label>
-          <div class="input-wrap">
-            <input type="number" id="goldReturn" min="0" max="30" step="0.1" value="7" />
-            <span class="unit">%</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="silverBalance">Silver — Current Value</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="silverBalance" min="0" value="8000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="silverReturn">Silver — Expected Annual Return</label>
-          <div class="input-wrap">
-            <input type="number" id="silverReturn" min="0" max="30" step="0.1" value="5" />
-            <span class="unit">%</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- SECTION: Assumptions -->
-        <div class="section-label">Assumptions</div>
-
-        <div class="form-group">
-          <label for="annualReturn">
-            Expected Annual Market Return
-            <span class="hint">nominal, before inflation — applied to all investment accounts</span>
-          </label>
-          <div class="input-wrap">
-            <input type="number" id="annualReturn" min="0" max="30" step="0.1" value="7" />
-            <span class="unit">%</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="inflationRate">Expected Inflation Rate</label>
-          <div class="input-wrap">
-            <input type="number" id="inflationRate" min="0" max="20" step="0.1" value="3" />
-            <span class="unit">%</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- SECTION: Tax Rates -->
-        <div class="section-label">Tax Rates</div>
-
-        <div class="form-group">
-          <label for="tradTaxRate">
-            Traditional 401k / Taxable Withdrawal Rate
-            <span class="hint">effective rate you expect to pay in retirement</span>
-          </label>
-          <div class="input-wrap">
-            <input type="number" id="tradTaxRate" min="0" max="60" step="0.1" value="22" />
-            <span class="unit">%</span>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="capGainsRate">
-            Capital Gains Rate — Taxable &amp; Metals
-            <span class="hint">long-term rate; precious metals may be higher (28% collectibles rate)</span>
-          </label>
-          <div class="input-wrap">
-            <input type="number" id="capGainsRate" min="0" max="40" step="0.1" value="15" />
-            <span class="unit">%</span>
-          </div>
-        </div>
-
-        <div class="roth-note">Roth: always 0% tax on withdrawals</div>
-
-        <div class="divider"></div>
-
-        <!-- SECTION: Retirement Income Goals -->
-        <div class="section-label">Retirement Income Goals</div>
-
-        <div class="form-group">
-          <label for="desiredIncome">
-            Desired Monthly Income (today's $)
-            <span class="hint">after-tax amount you want to spend each month</span>
-          </label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="desiredIncome" min="0" value="8000" />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="socialSecurity">Expected Social Security</label>
-          <div class="input-wrap">
-            <span class="unit prefix">$</span>
-            <input type="number" id="socialSecurity" min="0" value="2200" />
-            <span class="unit">$/mo</span>
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <!-- SECTION: Military Pension -->
-        <div class="section-label">Military Pension</div>
-
-        <div class="form-group toggle-group">
-          <label class="toggle-label">
-            <input type="checkbox" id="reserveEnabled" />
-            <span>Enable Navy Reserve / Active Duty Pension</span>
-          </label>
-        </div>
-
-        <div id="reserveSection" class="reserve-section hidden">
-          <p class="reserve-note">Uses 2025 base pay tables. Formula: (total points ÷ 360) × rate × base pay.</p>
-
-          <div class="form-group">
-            <label for="activeDutyYears">
-              Active Duty Years
-              <span class="hint">each year = 365 retirement points</span>
-            </label>
-            <div class="input-wrap">
-              <input type="number" id="activeDutyYears" min="0" max="40" value="0" />
-              <span class="unit">yrs</span>
-            </div>
-          </div>
-
-          <div class="computed-line" id="activeDutyPointsDisplay">Active duty points: 0</div>
-
-          <div class="form-group">
-            <label for="reservePoints">
-              Reserve Drill Points
-              <span class="hint">typically 63 pts/yr (15 membership + 48 drills); add points for any active service, schools, etc.</span>
-            </label>
-            <div class="input-wrap">
-              <input type="number" id="reservePoints" min="0" value="1260" />
-              <span class="unit">pts</span>
-            </div>
-          </div>
-
-          <div class="computed-line" id="totalPointsDisplay">Total retirement points: 1,260</div>
-
-          <div class="form-group">
-            <label for="reserveGrade">Pay Grade at Retirement</label>
-            <div class="input-wrap select-wrap">
-              <select id="reserveGrade">
-                <option value="O-3">O-3 — Lieutenant</option>
-                <option value="O-4">O-4 — Lt Commander</option>
-                <option value="O-5" selected>O-5 — Commander</option>
-                <option value="O-6">O-6 — Captain</option>
-                <option value="O-7">O-7 — Rear Admiral (LH)</option>
-                <option value="O-8">O-8 — Rear Admiral (UH)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="reserveYOS">Years of Service at Retirement</label>
-            <div class="input-wrap">
-              <input type="number" id="reserveYOS" min="0" max="40" value="22" />
-              <span class="unit">yrs</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="reserveSystem">Retirement System</label>
-            <div class="input-wrap select-wrap">
-              <select id="reserveSystem">
-                <option value="high3" selected>High-3 (2.5% multiplier)</option>
-                <option value="brs">BRS — Blended (2.0% multiplier)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="reservePensionAge">
-              Age Pension Begins
-              <span class="hint">typically 60; earlier if you served qualifying active periods post-2008</span>
-            </label>
-            <div class="input-wrap">
-              <input type="number" id="reservePensionAge" min="50" max="75" value="60" />
-              <span class="unit">yrs</span>
-            </div>
-          </div>
-
-          <div class="reserve-estimate" id="reserveEstimate">Estimated pension: —</div>
-        </div>
-
       </section>
 
-      <!-- ===== RESULTS ===== -->
-      <section class="results-panel">
-
-        <!-- Error banner -->
-        <div id="errorBanner" class="error-banner hidden">
-          <span id="errorMessage"></span>
+      <section class="section" id="tab-tax">
+        <div class="card placeholder">
+          <div class="ph-title">Tax Projector</div>
+          <div class="ph-badge">Coming soon</div>
+          <p class="ph-desc">
+            Projects federal and marginal tax liability across years using your
+            income, deductions, and filing status.
+          </p>
         </div>
+      </section>
 
-        <!-- Summary stat grid (2x2) -->
-        <div class="summary-grid">
-          <div class="stat-card">
-            <div class="stat-label">Total Portfolio at Retirement</div>
-            <div class="stat-value" id="projectedSavings">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Years to Retirement</div>
-            <div class="stat-value" id="yearsToRetirement">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">After-Tax Monthly Income<span class="stat-sublabel"> (savings, 25-yr horizon)</span></div>
-            <div class="stat-value" id="affordableIncome">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Monthly Income<span class="stat-sublabel" id="totalIncomeLabel"> (incl. SS)</span></div>
-            <div class="stat-value" id="totalMonthlyIncome">—</div>
-          </div>
+      <section class="section" id="tab-retirement">
+        <div class="card placeholder">
+          <div class="ph-title">Retirement Modeler</div>
+          <div class="ph-badge">Coming soon</div>
+          <p class="ph-desc">
+            Models long-term portfolio growth, draw-down, pensions, and Social
+            Security to test retirement readiness.
+          </p>
         </div>
+      </section>
 
-        <!-- Portfolio breakdown bar -->
-        <div class="breakdown-card card">
-          <div class="breakdown-title">Portfolio at Retirement — Breakdown</div>
-          <div class="breakdown-bar" id="breakdownBar">
-            <!-- segments injected by JS -->
-          </div>
-          <div class="breakdown-legend" id="breakdownLegend">
-            <!-- legend injected by JS -->
-          </div>
+      <section class="section" id="tab-scenarios">
+        <div class="card placeholder">
+          <div class="ph-title">Scenarios</div>
+          <div class="ph-badge">Coming soon</div>
+          <p class="ph-desc">
+            Save and compare alternative what-if assumption sets side by side.
+          </p>
         </div>
+      </section>
 
-        <!-- Goal indicator -->
-        <div id="goalIndicator" class="goal-card hidden">
-          <div class="goal-icon" id="goalIcon"></div>
-          <div class="goal-text">
-            <div class="goal-title" id="goalTitle"></div>
-            <div class="goal-detail" id="goalDetail"></div>
-          </div>
+      <section class="section" id="tab-export">
+        <div class="card placeholder">
+          <div class="ph-title">Export</div>
+          <div class="ph-badge">Coming soon</div>
+          <p class="ph-desc">
+            Download your data and projections as JSON or CSV for backup and
+            offline analysis.
+          </p>
         </div>
+      </section>
 
-        <!-- Savings duration -->
-        <div class="card info-card">
-          <div class="info-label">Savings Will Last</div>
-          <div class="info-value" id="savingsDuration">—</div>
-        </div>
+      <!-- ============================ INPUTS (functional) ===================== -->
+      <section class="section" id="tab-inputs">
+        <h2 class="section-title">Inputs</h2>
+        <p class="section-sub">
+          Source-of-truth financial inputs. Everything saves automatically to
+          this browser only.
+        </p>
 
-        <!-- Chart -->
-        <div class="card chart-card">
-          <h3 class="chart-title">Portfolio Balance Over Time</h3>
-          <div class="chart-legend">
-            <span class="legend-dot green"></span><span>Accumulation</span>
-            <span class="legend-dot orange"></span><span>Retirement drawdown</span>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="savingsChart"></canvas>
-          </div>
-        </div>
+        <nav class="subnav" id="inputsSubnav">
+          <button class="subtab-btn" data-subtab="income">Income</button>
+          <button class="subtab-btn" data-subtab="liquid">Liquid Investments</button>
+          <button class="subtab-btn" data-subtab="alternatives">Alternative &amp; Illiquid</button>
+          <button class="subtab-btn" data-subtab="realestate">Real Estate</button>
+          <button class="subtab-btn" data-subtab="debt">Debt</button>
+          <button class="subtab-btn" data-subtab="military">Military &amp; Benefits</button>
+        </nav>
 
+        <div class="subsection" id="sub-income"></div>
+        <div class="subsection" id="sub-liquid"></div>
+        <div class="subsection" id="sub-alternatives"></div>
+        <div class="subsection" id="sub-realestate"></div>
+        <div class="subsection" id="sub-debt"></div>
+        <div class="subsection" id="sub-military"></div>
       </section>
     </div>
-  </main>
 
-  <footer>
-    <p>This calculator is for educational purposes only and does not constitute financial advice.</p>
-  </footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="calculator.js"></script>
-</body>
+    <script type="module" src="app.js"></script>
+  </body>
 </html>
