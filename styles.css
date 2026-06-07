@@ -521,7 +521,7 @@ details > summary::-webkit-details-marker {
 }
 
 details > summary::before {
-  content: "▸";
+  content: "\25B8";
   color: var(--accent);
   transition: transform 0.15s ease;
   display: inline-block;
@@ -597,4 +597,531 @@ details[open] > summary::before {
 .total-footer .amount {
   color: var(--accent);
   font-weight: 500;
+}
+
+/* ================================================================== *
+ * Dashboard
+ * ================================================================== */
+
+/* Stagger wrapper — children fade in sequentially */
+.dash-stagger > * {
+  animation: fadeIn 0.45s ease both;
+}
+.dash-stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.dash-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.dash-stagger > *:nth-child(3) { animation-delay: 0.13s; }
+.dash-stagger > *:nth-child(4) { animation-delay: 0.18s; }
+.dash-stagger > *:nth-child(5) { animation-delay: 0.23s; }
+
+/* KPI bar */
+.kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+}
+
+.kpi-hero {
+  border-color: rgba(0, 212, 170, 0.45);
+  background: rgba(0, 212, 170, 0.05);
+}
+
+.kpi-label {
+  display: block;
+  font-family: var(--font-head);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  display: block;
+  font-family: var(--font-data);
+  font-size: 18px;
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-hero .kpi-value {
+  font-size: 24px;
+  color: var(--accent);
+}
+
+/* Two-column middle grid */
+.dash-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 0;
+  align-items: start;
+}
+
+.dash-grid-2 .card {
+  margin-bottom: 0;
+}
+
+/* Donut chart */
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.donut-svg {
+  flex-shrink: 0;
+}
+
+.donut-legend {
+  flex: 1;
+  min-width: 0;
+}
+
+.donut-legend-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.donut-legend-row:last-child {
+  border-bottom: none;
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-label {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.legend-val {
+  font-size: 12px;
+  text-align: right;
+}
+
+.legend-pct {
+  font-size: 11px;
+  color: var(--muted);
+  width: 42px;
+  text-align: right;
+}
+
+/* Retirement progress */
+.progress-section {
+  margin-top: 20px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.progress-years-txt {
+  color: var(--muted);
+}
+
+.progress-years-val {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.progress-gap {
+  font-family: var(--font-data);
+  font-size: 13px;
+}
+
+.progress-track {
+  background: var(--border);
+  border-radius: 4px;
+  height: 7px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: var(--accent);
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.4s ease;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* Debt payoff bars */
+.debt-bars {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.debt-bar-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 100px 58px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.debt-bar-name {
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debt-bar-track {
+  background: var(--border);
+  border-radius: 3px;
+  height: 5px;
+  overflow: hidden;
+}
+
+.debt-bar-fill {
+  background: var(--accent);
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.65;
+}
+
+.debt-bar-bal {
+  text-align: right;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.debt-bar-yrs {
+  text-align: right;
+  color: var(--text);
+}
+
+/* Concentration risk */
+.conc-alert {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.conc-alert--warn {
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.4);
+  color: var(--danger);
+}
+
+.conc-alert--ok {
+  background: rgba(0, 212, 170, 0.07);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  color: var(--accent);
+}
+
+.conc-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.conc-pie {
+  flex-shrink: 0;
+}
+
+.conc-table-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.conc-flag {
+  font-size: 10px;
+  color: var(--danger);
+  margin-left: 6px;
+}
+
+.swatch-sm {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.muted-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 10px 0 0;
+}
+
+/* ================================================================== *
+ * Tax Projector
+ * ================================================================== */
+
+.tax-year-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tax-year-bar label {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-head);
+}
+
+.tax-year-bar select {
+  width: auto;
+  min-width: 90px;
+}
+
+.tax-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+/* Income summary card */
+.income-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.income-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.income-row:last-child {
+  border-bottom: none;
+}
+
+.income-row.total-row {
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.income-row .row-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.income-row.total-row .row-label {
+  font-family: var(--font-head);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.income-row .row-value {
+  font-family: var(--font-data);
+  text-align: right;
+}
+
+.income-row.total-row .row-value {
+  font-size: 15px;
+  color: var(--accent);
+}
+
+/* Bracket waterfall */
+.bracket-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.bracket-table th {
+  font-family: var(--font-head);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.bracket-table th.num {
+  text-align: right;
+}
+
+.bracket-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-data);
+  vertical-align: middle;
+}
+
+.bracket-table td.label-col {
+  font-family: var(--font-head);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bracket-table td.num {
+  text-align: right;
+}
+
+.bracket-table tr.active-bracket td {
+  background: rgba(0, 212, 170, 0.06);
+}
+
+.bracket-table tr.active-bracket td.label-col {
+  color: var(--accent);
+}
+
+.bracket-fill-cell {
+  width: 120px;
+  padding-right: 12px !important;
+}
+
+.bracket-bar-track {
+  background: var(--border);
+  border-radius: 3px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.bracket-bar-fill {
+  background: var(--accent);
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.7;
+}
+
+.bracket-table tfoot td {
+  border-top: 2px solid var(--border);
+  padding: 8px;
+  font-size: 13px;
+}
+
+.bracket-table tfoot td.label-col {
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Alert banners */
+.tax-alert {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.tax-alert--warn {
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.4);
+  color: var(--danger);
+}
+
+.tax-alert--info {
+  background: rgba(0, 212, 170, 0.07);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  color: var(--accent);
+}
+
+.tax-alert--neutral {
+  background: rgba(107, 114, 128, 0.12);
+  border: 1px solid rgba(107, 114, 128, 0.35);
+  color: var(--muted);
+}
+
+.alert-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alert-body strong {
+  display: block;
+  margin-bottom: 3px;
+  font-family: var(--font-head);
+}
+
+/* Year-end balance estimator */
+.yeb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.yeb-item {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.yeb-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.yeb-value {
+  font-family: var(--font-data);
+  font-size: 20px;
+  color: var(--text);
+  text-align: right;
+}
+
+.yeb-sub {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 3px;
 }
