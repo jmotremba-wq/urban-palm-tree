@@ -67,6 +67,8 @@ function compute() {
   const inc = state.inputs.income;
   const year = state.taxYear || 2025;
 
+  const nameA = inc.earnerAName || "Earner A";
+  const nameB = inc.earnerBName || "Earner B";
   const earnerABase         = Number(inc.earnerABase || 0);
   const earnerABonusPct     = Number(inc.earnerABonusPct || 0);
   const earnerABonus        = earnerABase * earnerABonusPct / 100;
@@ -96,7 +98,7 @@ function compute() {
   const yearEndBalance     = totalTax - totalWithheld;
 
   return {
-    year,
+    year, nameA, nameB,
     earnerABase, earnerABonusPct, earnerABonus,
     bonusWithholdingPct,
     earnerBBase, earnerBTotalComp, earnerBExtra,
@@ -153,11 +155,11 @@ function buildKPIs(c) {
 
 function buildIncomeCard(c) {
   const rows = [
-    { label: "Earner A — Base",               val: formatDollars(c.earnerABase) },
-    { label: `Earner A — Bonus (${formatPercent(c.earnerABonusPct)} of base)`,
+    { label: `${c.nameA} — Base`,             val: formatDollars(c.earnerABase) },
+    { label: `${c.nameA} — Bonus (${formatPercent(c.earnerABonusPct)} of base)`,
                                                val: formatDollars(c.earnerABonus) },
-    { label: "Earner B — Base",               val: formatDollars(c.earnerBBase) },
-    { label: "Earner B — Variable Comp",      val: formatDollars(c.earnerBExtra) },
+    { label: `${c.nameB} — Base`,             val: formatDollars(c.earnerBBase) },
+    { label: `${c.nameB} — Variable Comp`,    val: formatDollars(c.earnerBExtra) },
     { label: "Gross Income",                  val: formatDollars(c.grossIncome),   total: true },
     { label: "Standard Deduction",            val: `(${formatDollars(c.stdDeduction)})` },
     { label: "Federal Taxable Income",        val: formatDollars(c.taxableIncome), total: true },
@@ -220,7 +222,7 @@ function buildAlerts(c) {
       <span class="alert-icon">&#9888;</span>
       <div class="alert-body">
         <strong>Bonus under-withheld ~${formatDollars(c.bonusUnderWithheld)}</strong>
-        Earner A's bonus used the ${formatPercent(c.bonusWithholdingPct)} supplemental rate, but
+        ${c.nameA}'s bonus used the ${formatPercent(c.bonusWithholdingPct)} supplemental rate, but
         the marginal federal rate is ${formatPercent(c.marginalRate * 100, { decimals: 0 })}.
         Consider an estimated tax payment (Q4) to avoid an underpayment penalty.
       </div>

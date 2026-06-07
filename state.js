@@ -17,6 +17,10 @@ function seedDefaults() {
     inputsSubTab: "income",
     inputs: {
       income: {
+        // Generic placeholder names. Users rename these locally; the renamed
+        // values live only in this browser's localStorage, never in the repo.
+        earnerAName: "Earner A",
+        earnerBName: "Earner B",
         earnerABase: 300000,
         earnerABonusPct: 14,
         earnerABonusWithholdingPct: 22,
@@ -112,6 +116,16 @@ function seedDefaults() {
       targetAge: 53,
       targetNetWorth: 5000000,
     },
+    retirement: {
+      retireAge: 55,
+      lifeExpectancy: 90,
+      nominalReturn: 6.5,
+      inflation: 2.5,
+      annualContribution: 60000,
+      desiredSpending: 180000,
+      withdrawalRate: 4,
+      includeRealEstate: false,
+    },
     taxYear: 2026,
     retirementMode: "simple",
     scenarios: {},
@@ -126,11 +140,20 @@ function seedDefaults() {
 // keys still appear for users with older saved blobs.
 function hydrate(saved, defaults) {
   if (!saved || typeof saved !== "object") return defaults;
+  const savedInputs = saved.inputs || {};
   return {
     ...defaults,
     ...saved,
-    inputs: { ...defaults.inputs, ...(saved.inputs || {}) },
+    inputs: {
+      ...defaults.inputs,
+      ...savedInputs,
+      // Deep-merge the keyed sub-objects so newly-added default fields (e.g.
+      // earner names) appear for users with older saved blobs.
+      income: { ...defaults.inputs.income, ...(savedInputs.income || {}) },
+      military: { ...defaults.inputs.military, ...(savedInputs.military || {}) },
+    },
     dashboard: { ...defaults.dashboard, ...(saved.dashboard || {}) },
+    retirement: { ...defaults.retirement, ...(saved.retirement || {}) },
   };
 }
 

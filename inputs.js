@@ -136,14 +136,43 @@ function renderIncome(root) {
   const inc = state.inputs.income;
   root.innerHTML = "";
 
+  // Resolve the (possibly renamed) earner labels, falling back to generics.
+  const nameA = inc.earnerAName || "Earner A";
+  const nameB = inc.earnerBName || "Earner B";
+
   const card = el("div", { class: "card stagger" });
   card.appendChild(el("h3", { class: "card-title", text: "Income" }));
+
+  // Re-render this sub-tab so renamed labels propagate immediately.
+  const rerender = () => renderIncome(root);
+
+  // ---- Names (renamed locally only — defaults stay generic) ----
+  const nameGrid = el("div", { class: "form-grid" });
+  nameGrid.appendChild(
+    field(
+      "Earner A — Display Name",
+      boundInput("text", () => inc.earnerAName, (v) => (inc.earnerAName = v), {
+        onCommit: rerender,
+      }),
+      { note: "Stored only in this browser; the saved default stays generic." }
+    )
+  );
+  nameGrid.appendChild(
+    field(
+      "Earner B — Display Name",
+      boundInput("text", () => inc.earnerBName, (v) => (inc.earnerBName = v), {
+        onCommit: rerender,
+      }),
+      { note: "Stored only in this browser; the saved default stays generic." }
+    )
+  );
+  card.appendChild(nameGrid);
 
   const grid = el("div", { class: "form-grid" });
 
   // Earner A bonus auto-calc display.
   const bonusOut = readonlyField(
-    "Earner A bonus amount:",
+    `${nameA} bonus amount:`,
     formatDollars(inc.earnerABase * (inc.earnerABonusPct / 100))
   );
   const recalcBonus = () =>
@@ -153,7 +182,7 @@ function renderIncome(root) {
 
   grid.appendChild(
     field(
-      "Earner A — W-2 Base Salary",
+      `${nameA} — W-2 Base Salary`,
       boundInput("dollar", () => inc.earnerABase, (v) => (inc.earnerABase = v), {
         onCommit: recalcBonus,
       })
@@ -161,7 +190,7 @@ function renderIncome(root) {
   );
   grid.appendChild(
     field(
-      "Earner A — Annual Bonus (%)",
+      `${nameA} — Annual Bonus (%)`,
       boundInput(
         "percent",
         () => inc.earnerABonusPct,
@@ -170,10 +199,10 @@ function renderIncome(root) {
       )
     )
   );
-  grid.appendChild(field("Earner A — Bonus (auto-calc)", bonusOut.node, { span2: false }));
+  grid.appendChild(field(`${nameA} — Bonus (auto-calc)`, bonusOut.node, { span2: false }));
   grid.appendChild(
     field(
-      "Earner A — Bonus Withholding Rate (%)",
+      `${nameA} — Bonus Withholding Rate (%)`,
       boundInput(
         "percent",
         () => inc.earnerABonusWithholdingPct,
@@ -183,13 +212,13 @@ function renderIncome(root) {
   );
   grid.appendChild(
     field(
-      "Earner B — W-2 Base Salary",
+      `${nameB} — W-2 Base Salary`,
       boundInput("dollar", () => inc.earnerBBase, (v) => (inc.earnerBBase = v))
     )
   );
   grid.appendChild(
     field(
-      "Earner B — Total Annual Comp",
+      `${nameB} — Total Annual Comp`,
       boundInput(
         "dollar",
         () => inc.earnerBTotalComp,
@@ -779,6 +808,8 @@ const SS_FACTORS = { 62: 0.7, 67: 1.0, 70: 1.24 };
 function renderMilitary(root) {
   root.innerHTML = "";
   const m = state.inputs.military;
+  const nameA = state.inputs.income.earnerAName || "Earner A";
+  const nameB = state.inputs.income.earnerBName || "Earner B";
   const card = el("div", { class: "card stagger" });
   card.appendChild(el("h3", { class: "card-title", text: "Military & Benefits" }));
 
@@ -823,11 +854,11 @@ function renderMilitary(root) {
   const recalcSSA = () =>
     ssAOut.set(formatDollars(m.ssAFull67 * (SS_FACTORS[m.ssAClaimAge] || 1)));
 
-  grid.appendChild(field("Earner A SS — Full Benefit at 67",
+  grid.appendChild(field(`${nameA} SS — Full Benefit at 67`,
     boundInput("dollar", () => m.ssAFull67, (v) => (m.ssAFull67 = v), { onCommit: recalcSSA })));
-  grid.appendChild(field("Earner A SS — Claiming Age",
+  grid.appendChild(field(`${nameA} SS — Claiming Age`,
     boundSelect(["62", "67", "70"], () => m.ssAClaimAge, (v) => (m.ssAClaimAge = Number(v)), { onCommit: recalcSSA })));
-  grid.appendChild(field("Earner A SS — Benefit (auto-calc)", ssAOut.node));
+  grid.appendChild(field(`${nameA} SS — Benefit (auto-calc)`, ssAOut.node));
 
   // ---- Social Security: Earner B ----
   const ssBOut = readonlyField("Annual benefit at selected age:",
@@ -835,11 +866,11 @@ function renderMilitary(root) {
   const recalcSSB = () =>
     ssBOut.set(formatDollars(m.ssBFull67 * (SS_FACTORS[m.ssBClaimAge] || 1)));
 
-  grid.appendChild(field("Earner B SS — Full Benefit at 67",
+  grid.appendChild(field(`${nameB} SS — Full Benefit at 67`,
     boundInput("dollar", () => m.ssBFull67, (v) => (m.ssBFull67 = v), { onCommit: recalcSSB })));
-  grid.appendChild(field("Earner B SS — Claiming Age",
+  grid.appendChild(field(`${nameB} SS — Claiming Age`,
     boundSelect(["62", "67", "70"], () => m.ssBClaimAge, (v) => (m.ssBClaimAge = Number(v)), { onCommit: recalcSSB })));
-  grid.appendChild(field("Earner B SS — Benefit (auto-calc)", ssBOut.node));
+  grid.appendChild(field(`${nameB} SS — Benefit (auto-calc)`, ssBOut.node));
 
   card.appendChild(grid);
   root.appendChild(card);
