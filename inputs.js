@@ -970,11 +970,91 @@ function renderMilitary(root) {
 
   const grid = el("div", { class: "form-grid" });
 
+  // Benefits summary card — rebuilt live whenever any benefit input changes
+  const summaryCard = el("div", { class: "card" });
+  const refreshBenefitsSummary = () => {
+    summaryCard.innerHTML = "";
+    summaryCard.appendChild(el("h3", { class: "card-title", text: "Benefits — Wealth Equivalent" }));
+
+    const wr       = (Number(state.retirement.withdrawalRate) || 4) / 100;
+    const margRate = (Number(state.inputs.income.fedMarginalPct) || 0) / 100;
+    const pension  = Number(m.high3 || 0) * (Number(m.pensionMultiplierPct || 0) / 100);
+    const va       = Number(m.vaAnnual || 0);
+    const ssA      = Number(m.ssAFull67 || 0) * 12 * (SS_FACTORS[m.ssAClaimAge] || 1);
+    const ssB      = Number(m.ssBFull67 || 0) * 12 * (SS_FACTORS[m.ssBClaimAge] || 1);
+    const tricare  = Number(m.tricareSavings || 0);
+
+    // Without CRDP the VA amount offsets retirement pay dollar-for-dollar.
+    const effectivePension = m.crdpEligible ? pension : Math.max(0, pension - va);
+    const portEquivTaxable = (amt) => wr > 0 ? amt / wr : 0;
+    const portEquivFree    = (amt) => wr > 0 && margRate < 1 ? (amt / (1 - margRate)) / wr : 0;
+
+    if (pension > 0 && va > 0) {
+      const alertEl = el("div", { class: "tax-alert " + (m.crdpEligible ? "tax-alert--info" : "tax-alert--warn") });
+      const icon = el("span", { class: "alert-icon", html: m.crdpEligible ? "&#10003;" : "&#9888;" });
+      const body = el("div", { class: "alert-body" });
+      body.innerHTML = m.crdpEligible
+        ? `<strong>CRDP Active</strong>Pension and VA are both paid in full. Combined guaranteed income: <strong>${formatDollars(pension + va)}/yr</strong>.`
+        : `<strong>No CRDP</strong>VA offsets retirement pay dollar-for-dollar. Effective pension reduced from ${formatDollars(pension)} to <strong>${formatDollars(effectivePension)}/yr</strong>.`;
+      alertEl.appendChild(icon);
+      alertEl.appendChild(body);
+      summaryCard.appendChild(alertEl);
+    }
+
+    const rows = [];
+    if (effectivePension > 0) rows.push({ label: "Military Pension",          annual: effectivePension, tax: "Taxable · COLA",                                  equiv: portEquivTaxable(effectivePension) });
+    if (va > 0)               rows.push({ label: "VA Disability",              annual: va,               tax: "Tax-Free · COLA",                                  equiv: portEquivFree(va) });
+    if (ssA > 0)              rows.push({ label: `${nameA} — Social Security`, annual: ssA,              tax: `Up to 85% taxable · COLA (age ${m.ssAClaimAge})`,  equiv: portEquivTaxable(ssA) });
+    if (ssB > 0)              rows.push({ label: `${nameB} — Social Security`, annual: ssB,              tax: `Up to 85% taxable · COLA (age ${m.ssBClaimAge})`,  equiv: portEquivTaxable(ssB) });
+    if (tricare > 0)          rows.push({ label: "TRICARE Savings",            annual: tricare,          tax: "Tax-Free benefit",                                 equiv: portEquivFree(tricare) });
+
+    if (rows.length === 0) {
+      summaryCard.appendChild(el("p", { class: "muted-note", text: "Enter pension/VA/SS data above to see the wealth equivalent summary." }));
+      return;
+    }
+
+    const totalAnnual = rows.reduce((s, r) => s + r.annual, 0);
+    const totalEquiv  = rows.reduce((s, r) => s + r.equiv, 0);
+
+    const meta = el("p", { class: "muted-note" });
+    meta.innerHTML = `SWR = ${(wr * 100).toFixed(1)}% · Marginal rate = ${(margRate * 100).toFixed(0)}% · Tax-free sources are grossed up to show true lump-sum equivalent.`;
+    meta.style.cssText = "margin-top:0;margin-bottom:14px;";
+    summaryCard.appendChild(meta);
+
+    const tbl = el("table", { class: "bracket-table" });
+    tbl.appendChild(el("thead", {}, el("tr", {}, [
+      el("th", { text: "Source" }),
+      el("th", { class: "num", text: "Annual (today's $)" }),
+      el("th", { text: "Tax Treatment" }),
+      el("th", { class: "num", text: `Portfolio Equiv @ ${(wr * 100).toFixed(0)}% SWR` }),
+    ])));
+    const bTbody = el("tbody");
+    for (const row of rows) {
+      bTbody.appendChild(el("tr", {}, [
+        el("td", { text: row.label }),
+        el("td", { class: "num mono", text: formatDollars(row.annual) }),
+        el("td", { text: row.tax }),
+        el("td", { class: "num mono", text: formatDollars(row.equiv) }),
+      ]));
+    }
+    tbl.appendChild(bTbody);
+    tbl.appendChild(el("tfoot", {}, el("tr", {}, [
+      el("td", { class: "label-col", text: "Total" }),
+      el("td", { class: "num mono", text: formatDollars(totalAnnual) }),
+      el("td"),
+      el("td", { class: "num mono", html: `<span style="color:var(--accent);font-weight:600">${formatDollars(totalEquiv)}</span>` }),
+    ])));
+    summaryCard.appendChild(tbl);
+    summaryCard.appendChild(el("p", { class: "muted-note", html: "COLA-indexed sources have a higher true equivalent — these figures are conservative (flat real income assumed)." }));
+  };
+
   // Pension auto-calc
   const pensionOut = readonlyField("Estimated Annual Pension:",
     formatDollars(m.high3 * (m.pensionMultiplierPct / 100)));
-  const recalcPension = () =>
+  const recalcPension = () => {
     pensionOut.set(formatDollars(m.high3 * (m.pensionMultiplierPct / 100)));
+    refreshBenefitsSummary();
+  };
 
   // High-3 pay input (auto-populated by grade/YOS but still manually editable)
   const high3Input = boundInput("dollar", () => m.high3, (v) => (m.high3 = v), { onCommit: recalcPension });
@@ -1020,7 +1100,10 @@ function renderMilitary(root) {
   grid.appendChild(field("VA Disability Rating (%)",
     boundInput("percent", () => m.vaRatingPct, (v) => (m.vaRatingPct = v))));
   grid.appendChild(field("Annual VA Disability — tax-free",
-    boundInput("dollar", () => m.vaAnnual, (v) => (m.vaAnnual = v))));
+    boundInput("dollar", () => m.vaAnnual, (v) => (m.vaAnnual = v), { onCommit: refreshBenefitsSummary })));
+  grid.appendChild(field("Annual TRICARE Savings — tax-free",
+    boundInput("dollar", () => m.tricareSavings, (v) => (m.tricareSavings = v), { onCommit: refreshBenefitsSummary }),
+    { note: "Estimated annual savings vs. civilian health insurance" }));
 
   // CRDP toggle
   const toggle = el("div", { class: "toggle-group" });
@@ -1030,8 +1113,8 @@ function renderMilitary(root) {
     yesBtn.classList.toggle("active", m.crdpEligible === true);
     noBtn.classList.toggle("active", m.crdpEligible === false);
   };
-  yesBtn.addEventListener("click", () => { m.crdpEligible = true; syncToggle(); save(); });
-  noBtn.addEventListener("click", () => { m.crdpEligible = false; syncToggle(); save(); });
+  yesBtn.addEventListener("click", () => { m.crdpEligible = true; syncToggle(); save(); refreshBenefitsSummary(); });
+  noBtn.addEventListener("click", () => { m.crdpEligible = false; syncToggle(); save(); refreshBenefitsSummary(); });
   toggle.appendChild(yesBtn);
   toggle.appendChild(noBtn);
   syncToggle();
@@ -1054,6 +1137,7 @@ function renderMilitary(root) {
   const recalcSSA = () => {
     ssAOut.set(formatDollars(m.ssAFull67 * 12 * (SS_FACTORS[m.ssAClaimAge] || 1)));
     ssABreakevenNote.textContent = ssABreakeven();
+    refreshBenefitsSummary();
   };
 
   const ssABreakevenNote = el("div", { class: "field-note", text: ssABreakeven() });
@@ -1085,6 +1169,7 @@ function renderMilitary(root) {
   const recalcSSB = () => {
     ssBOut.set(formatDollars(m.ssBFull67 * 12 * (SS_FACTORS[m.ssBClaimAge] || 1)));
     ssBBreakevenNote.textContent = ssBBreakeven();
+    refreshBenefitsSummary();
   };
 
   const ssBBreakevenNote = el("div", { class: "field-note", text: ssBBreakeven() });
@@ -1102,6 +1187,8 @@ function renderMilitary(root) {
 
   card.appendChild(grid);
   root.appendChild(card);
+  root.appendChild(summaryCard);
+  refreshBenefitsSummary();
 }
 
 /* ================================================================== *

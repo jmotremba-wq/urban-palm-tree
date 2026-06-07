@@ -110,6 +110,7 @@ function seedDefaults() {
         vaRatingPct: 70,
         vaAnnual: 24000,
         crdpEligible: true,
+        tricareSavings: 0,
         ssAFull67: 0,
         ssAClaimAge: 67,
         ssBFull67: 0,

@@ -277,6 +277,7 @@ label,
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .field.span-2 {
@@ -346,6 +347,8 @@ input.data-num {
   border: 1px dashed var(--border);
   border-radius: 8px;
   padding: 9px 11px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .readonly-line .accent {
@@ -1302,6 +1305,7 @@ details[open] > summary::before {
   font-size: 12px;
   color: var(--muted);
   cursor: pointer;
+  flex-wrap: wrap;
 }
 
 .ret-check {
