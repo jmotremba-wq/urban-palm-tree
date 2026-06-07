@@ -19,7 +19,7 @@ const SS_FACTORS = { 62: 0.7, 67: 1.0, 70: 1.24 };
  * Compute — pure, reads state, returns all derived numbers
  * ------------------------------------------------------------------ */
 
-function compute() {
+export function compute() {
   const r   = state.retirement;
   const m   = state.inputs.military;
   const inc = state.inputs.income;

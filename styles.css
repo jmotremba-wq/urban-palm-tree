@@ -1327,6 +1327,9 @@ details[open] > summary::before {
   .nw-value {
     font-size: 48px;
   }
+  .scen-preview-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (max-width: 640px) {
@@ -1410,4 +1413,142 @@ details[open] > summary::before {
   .nw-hero {
     padding: 20px 18px 18px;
   }
+  .scen-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .export-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .export-btn {
+    width: 100%;
+  }
+}
+
+/* ================================================================== *
+ * Scenarios
+ * ================================================================== */
+
+.scen-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.scen-preview-item {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.scen-preview-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.scen-preview-value {
+  font-family: var(--font-data);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scen-save-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.scen-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scen-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.scen-table th {
+  font-family: var(--font-head);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scen-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  font-family: var(--font-data);
+}
+
+.scen-table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.scen-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.scen-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ================================================================== *
+ * Export
+ * ================================================================== */
+
+.export-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.export-item:last-child {
+  border-bottom: none;
+}
+
+.export-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.export-item-title {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.export-item-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.export-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
