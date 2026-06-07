@@ -107,6 +107,11 @@ function seedDefaults() {
         ssBClaimAge: 67,
       },
     },
+    dashboard: {
+      currentAge: 41,
+      targetAge: 53,
+      targetNetWorth: 5000000,
+    },
     taxYear: 2026,
     retirementMode: "simple",
     scenarios: {},
@@ -125,6 +130,7 @@ function hydrate(saved, defaults) {
     ...defaults,
     ...saved,
     inputs: { ...defaults.inputs, ...(saved.inputs || {}) },
+    dashboard: { ...defaults.dashboard, ...(saved.dashboard || {}) },
   };
 }
 
