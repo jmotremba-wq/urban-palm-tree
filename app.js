@@ -1,11 +1,11 @@
 // app.js
 // Application shell: wires top-level tab navigation and the Inputs sub-tab nav,
 // restores the last-active tab/sub-tab from persisted state, and renders the
-// functional Inputs forms on demand. The non-Inputs tabs are static placeholder
-// cards already present in index.html.
+// functional Inputs forms on demand.
 
 import { state, saveNow } from "./state.js";
 import { renderSubTab } from "./inputs.js";
+import { renderDashboard } from "./dashboard.js";
 
 // Maps a top-level tab key to its section element id.
 const TAB_SECTIONS = {
@@ -40,6 +40,9 @@ function showTab(tab) {
     const sec = document.getElementById(id);
     if (sec) sec.classList.toggle("active", key === tab);
   }
+
+  // Re-render Dashboard on every visit so Inputs edits are reflected.
+  if (tab === "dashboard") renderDashboard();
 
   // Lazily render the active Inputs sub-tab when entering the Inputs tab.
   if (tab === "inputs") showSubTab(state.inputsSubTab);

@@ -1,0 +1,306 @@
+// dashboard.js
+// Renders the Dashboard section: KPI bar, net worth breakdown donut chart,
+// debt summary with payoff bars, concentration risk pie, and retirement
+// progress tracker with inline-editable targets.
+
+import { state, save } from "./state.js";
+import {
+  netWorth, totalAssets, totalLiabilities,
+  liquidTotal, cashTotal, liquidInvestmentsTotal,
+  realEstateEquity, alternativesTotal,
+  totalDebt, totalMonthlyDebtService, totalAnnualDebtService,
+  weightedAvgDebtRate, concentrationBreakdown, debtPayoffEstimates,
+} from "./financials.js";
+import { formatDollars, formatPercent, parseNumber } from "./utils.js";
+
+/* ─── Segment palette ─────────────────────────────────────── */
+const DONUT_COLORS = {
+  investments: "#00d4aa",
+  cash:        "#3b82f6",
+  realestate:  "#f59e0b",
+  alts:        "#6b7280",
+};
+
+const PIE_COLORS = [
+  "#00d4aa","#3b82f6","#f59e0b","#a78bfa","#ef4444",
+  "#06b6d4","#84cc16","#f97316","#ec4899","#14b8a6",
+];
+
+/* ─── Inline SVG charts ───────────────────────────────────── */
+
+// Donut chart using stroke-dasharray on overlapping circles.
+// Each segment starts where the previous one ended, rotated to begin at 12 o'clock.
+function buildDonut(segments, size = 160) {
+  const total = segments.reduce((s, g) => s + Math.max(0, g.value), 0);
+  const cx = size / 2, cy = size / 2;
+  const r  = size * 0.375;
+  const sw = size * 0.155;
+  const C  = 2 * Math.PI * r;
+
+  if (!total) {
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1e1e2e" stroke-width="${sw}"/>
+    </svg>`;
+  }
+
+  let cumulative = 0;
+  const circles = segments.filter(s => s.value > 0).map(s => {
+    const len    = (s.value / total) * C;
+    const offset = (C / 4) - cumulative;
+    cumulative  += len;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+      stroke="${s.color}" stroke-width="${sw}"
+      stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}"
+      stroke-dashoffset="${offset.toFixed(2)}"/>`;
+  });
+
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1e1e2e" stroke-width="${sw}"/>
+    ${circles.join("\n    ")}
+  </svg>`;
+}
+
+// Pie chart using SVG path arcs.
+function buildPie(segments, size = 160) {
+  const total = segments.reduce((s, g) => s + Math.max(0, g.value), 0);
+  const cx = size / 2, cy = size / 2, r = size * 0.45;
+
+  if (!total) {
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="#1e1e2e"/>
+    </svg>`;
+  }
+
+  const toXY = (a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  let angle = -Math.PI / 2;
+
+  const paths = segments.filter(s => s.value > 0).map(s => {
+    const sweep = (s.value / total) * 2 * Math.PI;
+    const end   = angle + sweep;
+    const [x1, y1] = toXY(angle);
+    const [x2, y2] = toXY(end);
+    const large = sweep > Math.PI ? 1 : 0;
+    const d = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    angle = end;
+    return `<path d="${d}" fill="${s.color}" stroke="#12121a" stroke-width="1.5"/>`;
+  });
+
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths.join("")}</svg>`;
+}
+
+/* ─── Small HTML helpers ──────────────────────────────────── */
+
+function signClass(n) {
+  return n < 0 ? "value-neg" : n > 0 ? "value-pos" : "";
+}
+
+/* ─── Section renderers ───────────────────────────────────── */
+
+function renderKPIBar() {
+  const nw      = netWorth();
+  const assets  = totalAssets();
+  const liab    = totalLiabilities();
+  const liquid  = liquidTotal();
+  const reEq    = realEstateEquity();
+  const annDebt = totalAnnualDebtService();
+
+  const kpi = (label, val, hero = false) => `
+    <div class="kpi${hero ? " kpi-hero" : ""}">
+      <span class="kpi-label">${label}</span>
+      <span class="kpi-value">${formatDollars(val)}</span>
+    </div>`;
+
+  return `<div class="kpi-bar">
+    ${kpi("Net Worth", nw, true)}
+    ${kpi("Total Assets", assets)}
+    ${kpi("Total Liabilities", liab)}
+    ${kpi("Liquid Assets", liquid)}
+    ${kpi("Real Estate Equity", reEq)}
+    ${kpi("Annual Debt Service", annDebt)}
+  </div>`;
+}
+
+function renderNetWorthBreakdown() {
+  const cash    = cashTotal();
+  const invest  = liquidInvestmentsTotal();
+  const reEq    = realEstateEquity();
+  const alts    = alternativesTotal();
+  const total   = invest + cash + reEq + alts;
+
+  const segments = [
+    { label: "Investments",        value: invest, color: DONUT_COLORS.investments },
+    { label: "Cash",               value: cash,   color: DONUT_COLORS.cash },
+    { label: "Real Estate Equity", value: reEq,   color: DONUT_COLORS.realestate },
+    { label: "Alternatives",       value: alts,   color: DONUT_COLORS.alts },
+  ].filter(s => s.value > 0);
+
+  const legend = segments.map(s => {
+    const pct = total > 0 ? (s.value / total * 100).toFixed(1) : "0.0";
+    return `<div class="donut-legend-row">
+      <span class="legend-swatch" style="background:${s.color}"></span>
+      <span class="legend-label">${s.label}</span>
+      <span class="legend-val mono">${formatDollars(s.value)}</span>
+      <span class="legend-pct mono">${pct}%</span>
+    </div>`;
+  }).join("");
+
+  return `<div class="card">
+    <h3 class="card-title">Net Worth Breakdown</h3>
+    <div class="donut-wrap">
+      <div class="donut-svg">${buildDonut(segments)}</div>
+      <div class="donut-legend">${legend || '<p class="muted-note">No data yet.</p>'}</div>
+    </div>
+  </div>`;
+}
+
+function renderRetirementProgress() {
+  const d      = state.dashboard;
+  const nw     = netWorth();
+  const target = Number(d.targetNetWorth) || 0;
+  const progress = target > 0 ? Math.min(100, (nw / target) * 100) : 0;
+  const yearsLeft = Math.max(0, Number(d.targetAge) - Number(d.currentAge));
+  const gap    = target - nw;
+
+  return `<div class="card">
+    <h3 class="card-title">Progress to Retirement</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>Current Age</label>
+        <input type="number" class="dash-field" data-dash="currentAge" value="${d.currentAge}" min="1" max="120"/>
+      </div>
+      <div class="field">
+        <label>Target Retirement Age</label>
+        <input type="number" class="dash-field" data-dash="targetAge" value="${d.targetAge}" min="1" max="120"/>
+      </div>
+      <div class="field span-2">
+        <label>Target Net Worth</label>
+        <input type="number" class="dash-field" data-dash="targetNetWorth" value="${target}" min="0"/>
+      </div>
+    </div>
+    <div class="progress-section">
+      <div class="progress-meta">
+        <span class="progress-years-txt"><span class="progress-years-val mono">${yearsLeft}</span> yrs to target</span>
+        <span class="progress-gap ${signClass(gap)}">${gap > 0 ? formatDollars(gap) + " gap" : "Target reached"}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${progress.toFixed(1)}%"></div>
+      </div>
+      <div class="progress-labels">
+        <span class="progress-cur-val mono">${formatDollars(nw)}</span>
+        <span class="progress-tgt-val mono">${formatDollars(target)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDebtSummary() {
+  const estimates = debtPayoffEstimates();
+  const totalBal  = totalDebt();
+  const wadr      = weightedAvgDebtRate();
+  const monthly   = totalMonthlyDebtService();
+  const annual    = totalAnnualDebtService();
+
+  const finiteYears = estimates.filter(e => isFinite(e.years)).map(e => e.years);
+  const maxYears    = finiteYears.length > 0 ? Math.max(...finiteYears) : 1;
+
+  const bars = estimates.map(e => {
+    const display = isFinite(e.years) ? `${e.years.toFixed(1)} yrs` : "∞";
+    const pct     = isFinite(e.years) ? Math.min(100, (e.years / maxYears) * 100).toFixed(1) : "100";
+    return `<div class="debt-bar-row">
+      <span class="debt-bar-name" title="${e.name}">${e.name}</span>
+      <div class="debt-bar-track">
+        <div class="debt-bar-fill" style="width:${pct}%"></div>
+      </div>
+      <span class="debt-bar-bal mono">${formatDollars(e.balance)}</span>
+      <span class="debt-bar-yrs mono">${display}</span>
+    </div>`;
+  }).join("");
+
+  return `<div class="card">
+    <h3 class="card-title">Debt Summary</h3>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-label">Total Debt</div><div class="stat-value">${formatDollars(totalBal)}</div></div>
+      <div class="stat"><div class="stat-label">Wtd Avg Rate</div><div class="stat-value">${formatPercent(wadr, { decimals: 2 })}</div></div>
+      <div class="stat"><div class="stat-label">Monthly Service</div><div class="stat-value">${formatDollars(monthly)}</div></div>
+      <div class="stat"><div class="stat-label">Annual Service</div><div class="stat-value">${formatDollars(annual)}</div></div>
+    </div>
+    ${estimates.length > 0 ? `<div class="debt-bars">${bars}</div>` : `<p class="muted-note">No debts entered.</p>`}
+  </div>`;
+}
+
+function renderConcentration() {
+  const breakdown = concentrationBreakdown();
+  const liquid    = liquidTotal();
+
+  if (breakdown.length === 0) {
+    return `<div class="card">
+      <h3 class="card-title">Concentration Risk</h3>
+      <p class="muted-note">No concentration holdings entered — add them in Inputs → Liquid Investments.</p>
+    </div>`;
+  }
+
+  const flagged = breakdown.filter(h => h.flagged);
+  const segments = breakdown.map((h, i) => ({ label: h.holding, value: h.value, color: PIE_COLORS[i % PIE_COLORS.length] }));
+
+  const rows = breakdown.map((h, i) => {
+    const color  = PIE_COLORS[i % PIE_COLORS.length];
+    const pctLiq = liquid > 0 ? (h.value / liquid * 100).toFixed(1) + "%" : "—";
+    const flag   = h.flagged ? `<span class="conc-flag">⚠ &gt;15%</span>` : "";
+    return `<tr>
+      <td><span class="swatch-sm" style="background:${color}"></span>${h.holding}${flag}</td>
+      <td class="num mono">${formatDollars(h.value)}</td>
+      <td class="num mono${h.flagged ? " value-neg" : ""}">${pctLiq}</td>
+    </tr>`;
+  }).join("");
+
+  const concTotal    = breakdown.reduce((s, h) => s + h.value, 0);
+  const concTotalPct = liquid > 0 ? (concTotal / liquid * 100).toFixed(1) + "%" : "—";
+
+  const alertHtml = flagged.length > 0
+    ? `<div class="conc-alert conc-alert--warn">⚠ ${flagged.map(h => h.holding).join(", ")} exceed${flagged.length === 1 ? "s" : ""} 15% of liquid assets</div>`
+    : `<div class="conc-alert conc-alert--ok">No single holding exceeds 15% of liquid assets</div>`;
+
+  return `<div class="card">
+    <h3 class="card-title">Concentration Risk</h3>
+    ${alertHtml}
+    <div class="conc-layout">
+      <div class="conc-pie">${buildPie(segments)}</div>
+      <div class="conc-table-wrap">
+        <table>
+          <thead><tr><th>Holding</th><th class="num">Value</th><th class="num">% of Liquid</th></tr></thead>
+          <tbody>${rows}</tbody>
+          <tfoot><tr><td class="label">Total</td><td class="num mono">${formatDollars(concTotal)}</td><td class="num mono">${concTotalPct}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─── Main export ─────────────────────────────────────────── */
+
+export function renderDashboard() {
+  const container = document.getElementById("tab-dashboard");
+  if (!container) return;
+
+  container.innerHTML = `
+    <h2 class="section-title">Dashboard</h2>
+    <p class="section-sub">Live snapshot — updates automatically from your Inputs data.</p>
+    <div class="dash-stagger">
+      ${renderKPIBar()}
+      <div class="dash-grid-2">
+        ${renderNetWorthBreakdown()}
+        ${renderRetirementProgress()}
+      </div>
+      ${renderDebtSummary()}
+      ${renderConcentration()}
+    </div>`;
+
+  container.querySelectorAll(".dash-field").forEach(input => {
+    input.addEventListener("change", e => {
+      const key = e.target.dataset.dash;
+      state.dashboard[key] = parseNumber(e.target.value);
+      save();
+      renderDashboard();
+    });
+  });
+}
