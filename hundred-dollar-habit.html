@@ -82,8 +82,12 @@ h1 em{font-style:normal;color:var(--green)}
 .tip-head{font-family:var(--head);font-weight:700;font-size:.85rem;margin-bottom:.35rem;border-bottom:1px solid #333;padding-bottom:.3rem}
 .tip-g{color:#5fd48a}.tip-a{color:#f0b040}.tip-b{color:#70b0f0}.tip-m{color:#888;font-size:.61rem;margin-top:.15rem}
 
-@media(max-width:620px){
+@media(max-width:700px){
   .stats{grid-template-columns:1fr 1fr}
+  .st-val{font-size:1.45rem}
+  .stat{padding:1.1rem .9rem}
+}
+@media(max-width:620px){
   .charts{grid-template-columns:1fr}
   .chart-outer{padding-bottom:60%}
   .decay-row{flex-wrap:wrap}
@@ -181,13 +185,20 @@ function sf(n){
   if(n>=1e3)return '$'+(n/1e3).toFixed(0)+'K';
   return '$'+Math.round(n);
 }
+// Compact format for stat tiles: $2.1M / $738K / $1.4K
+function ssf(n){
+  if(n>=1e6)return '$'+(n/1e6).toFixed(1)+'M';
+  if(n>=100e3)return '$'+(n/1e3).toFixed(0)+'K';
+  if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'K';
+  return '$'+Math.round(n);
+}
 
 // ── STATS ─────────────────────────────────────────────────
 document.getElementById('stats').innerHTML=[
-  {label:'Portfolio at 67',val:cf(L.portReal),cls:'g',sub:"today's purchasing power",hero:true},
-  {label:'You put in (real)',val:cf(L.totReal),cls:'a',sub:'your inflation-adjusted cost',hero:false},
-  {label:'Market gain (real)',val:cf(L.portReal-L.totReal),cls:'g',sub:'above your contributions',hero:false},
-  {label:'Final monthly (real)',val:cf(L.mReal)+'/mo',cls:'',sub:'$5,000 nominal → today\'s $',hero:false},
+  {label:'Portfolio at 67',val:ssf(L.portReal),cls:'g',sub:"today's purchasing power",hero:true},
+  {label:'You put in (real)',val:ssf(L.totReal),cls:'a',sub:'your inflation-adjusted cost',hero:false},
+  {label:'Market gain (real)',val:ssf(L.portReal-L.totReal),cls:'g',sub:'above your contributions',hero:false},
+  {label:'Final monthly (real)',val:ssf(L.mReal)+'/mo',cls:'',sub:'$5,000 nominal → today\'s $',hero:false},
 ].map(x=>`<div class="stat${x.hero?' hero':''}"><div class="st-label">${x.label}</div><div class="st-val ${x.cls}">${x.val}</div><div class="st-sub">${x.sub}</div></div>`).join('');
 
 // ── DECAY STRIP ───────────────────────────────────────────
