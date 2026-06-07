@@ -1035,31 +1035,75 @@ function renderMilitary(root) {
   toggle.appendChild(yesBtn);
   toggle.appendChild(noBtn);
   syncToggle();
-  grid.appendChild(field("CRDP Eligible", toggle));
+  grid.appendChild(field("CRDP Eligible", toggle,
+    { note: "Concurrent Retirement & Disability Pay — eliminates the dollar-for-dollar VA offset against retirement pay. Requires 20+ yrs service and VA rating ≥ 50%. At 70% VA you qualify." }));
 
   // ---- Social Security: Earner A ----
-  const ssAOut = readonlyField("Annual benefit at selected age:",
-    formatDollars(m.ssAFull67 * SS_FACTORS[m.ssAClaimAge]));
-  const recalcSSA = () =>
-    ssAOut.set(formatDollars(m.ssAFull67 * (SS_FACTORS[m.ssAClaimAge] || 1)));
+  const ssABreakeven = () => {
+    // Age at which delaying to 70 breaks even vs. claiming at 67
+    // Extra monthly benefit = (1.24 - 1.0) * monthly67; foregone months = 36
+    // Breakeven months = foregone / extra = 36 / 0.24 ≈ 150 months = 12.5 yrs → age 82.5
+    if (!m.ssAFull67) return "";
+    const monthly67 = m.ssAFull67 / 12;
+    const monthly62 = monthly67 * 0.70;
+    const monthly70 = monthly67 * 1.24;
+    // Delay 67→70: give up 36 months × monthly67, gain (monthly70-monthly67)/mo after
+    const be67to70 = 67 + (36 * monthly67) / (monthly70 - monthly67) / 12;
+    // Claim 62→67: give up 60 months × monthly62, gain (monthly67-monthly62)/mo after
+    const be62to67 = 67 + (60 * monthly62) / (monthly67 - monthly62) / 12;
+    return `Break-even: claim 62 vs 67 → age ${be62to67.toFixed(1)} · claim 67 vs 70 → age ${be67to70.toFixed(1)}`;
+  };
 
-  grid.appendChild(field(`${nameA} SS — Full Benefit at 67`,
-    boundInput("dollar", () => m.ssAFull67, (v) => (m.ssAFull67 = v), { onCommit: recalcSSA })));
-  grid.appendChild(field(`${nameA} SS — Claiming Age`,
-    boundSelect(["62", "67", "70"], () => m.ssAClaimAge, (v) => (m.ssAClaimAge = Number(v)), { onCommit: recalcSSA })));
-  grid.appendChild(field(`${nameA} SS — Benefit (auto-calc)`, ssAOut.node));
+  const ssAOut = readonlyField(`Adjusted annual benefit (age ${m.ssAClaimAge}):`,
+    formatDollars(m.ssAFull67 * SS_FACTORS[m.ssAClaimAge]));
+  const recalcSSA = () => {
+    ssAOut.set(formatDollars(m.ssAFull67 * (SS_FACTORS[m.ssAClaimAge] || 1)));
+    ssABreakevenNote.textContent = ssABreakeven();
+  };
+
+  const ssABreakevenNote = el("div", { class: "field-note", text: ssABreakeven() });
+
+  const ssAFull67Field = field(`${nameA} — Full Benefit at 67 (FRA)`,
+    boundInput("dollar", () => m.ssAFull67, (v) => (m.ssAFull67 = v), { onCommit: recalcSSA }),
+    { note: "Enter your Primary Insurance Amount from ssa.gov/myaccount — based on your earnings history." });
+  grid.appendChild(ssAFull67Field);
+
+  const ssAClaimField = field(`${nameA} — Claiming Age`,
+    boundSelect(["62", "67", "70"], () => m.ssAClaimAge, (v) => (m.ssAClaimAge = Number(v)), { onCommit: recalcSSA }));
+  ssAClaimField.appendChild(ssABreakevenNote);
+  grid.appendChild(ssAClaimField);
+  grid.appendChild(field(`${nameA} — Benefit (auto-calc)`, ssAOut.node));
 
   // ---- Social Security: Earner B ----
-  const ssBOut = readonlyField("Annual benefit at selected age:",
-    formatDollars(m.ssBFull67 * SS_FACTORS[m.ssBClaimAge]));
-  const recalcSSB = () =>
-    ssBOut.set(formatDollars(m.ssBFull67 * (SS_FACTORS[m.ssBClaimAge] || 1)));
+  const ssBBreakeven = () => {
+    if (!m.ssBFull67) return "";
+    const monthly67 = m.ssBFull67 / 12;
+    const monthly62 = monthly67 * 0.70;
+    const monthly70 = monthly67 * 1.24;
+    const be67to70 = 67 + (36 * monthly67) / (monthly70 - monthly67) / 12;
+    const be62to67 = 67 + (60 * monthly62) / (monthly67 - monthly62) / 12;
+    return `Break-even: claim 62 vs 67 → age ${be62to67.toFixed(1)} · claim 67 vs 70 → age ${be67to70.toFixed(1)}`;
+  };
 
-  grid.appendChild(field(`${nameB} SS — Full Benefit at 67`,
-    boundInput("dollar", () => m.ssBFull67, (v) => (m.ssBFull67 = v), { onCommit: recalcSSB })));
-  grid.appendChild(field(`${nameB} SS — Claiming Age`,
-    boundSelect(["62", "67", "70"], () => m.ssBClaimAge, (v) => (m.ssBClaimAge = Number(v)), { onCommit: recalcSSB })));
-  grid.appendChild(field(`${nameB} SS — Benefit (auto-calc)`, ssBOut.node));
+  const ssBOut = readonlyField(`Adjusted annual benefit (age ${m.ssBClaimAge}):`,
+    formatDollars(m.ssBFull67 * SS_FACTORS[m.ssBClaimAge]));
+  const recalcSSB = () => {
+    ssBOut.set(formatDollars(m.ssBFull67 * (SS_FACTORS[m.ssBClaimAge] || 1)));
+    ssBBreakevenNote.textContent = ssBBreakeven();
+  };
+
+  const ssBBreakevenNote = el("div", { class: "field-note", text: ssBBreakeven() });
+
+  const ssBFull67Field = field(`${nameB} — Full Benefit at 67 (FRA)`,
+    boundInput("dollar", () => m.ssBFull67, (v) => (m.ssBFull67 = v), { onCommit: recalcSSB }),
+    { note: "Enter the Primary Insurance Amount from ssa.gov/myaccount." });
+  grid.appendChild(ssBFull67Field);
+
+  const ssBClaimField = field(`${nameB} — Claiming Age`,
+    boundSelect(["62", "67", "70"], () => m.ssBClaimAge, (v) => (m.ssBClaimAge = Number(v)), { onCommit: recalcSSB }));
+  ssBClaimField.appendChild(ssBBreakevenNote);
+  grid.appendChild(ssBClaimField);
+  grid.appendChild(field(`${nameB} — Benefit (auto-calc)`, ssBOut.node));
 
   card.appendChild(grid);
   root.appendChild(card);
