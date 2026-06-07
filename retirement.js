@@ -67,8 +67,9 @@ export function compute() {
   const pension   = Number(m.high3 || 0) * (Number(m.pensionMultiplierPct || 0) / 100);
   const va        = Number(m.vaAnnual || 0);
   const rentalNet = Number(re.rental.annualGrossRent || 0) * (1 - Number(re.rental.mgmtFeePct || 0) / 100);
-  const ssA       = Number(m.ssAFull67 || 0) * (SS_FACTORS[m.ssAClaimAge] || 1);
-  const ssB       = Number(m.ssBFull67 || 0) * (SS_FACTORS[m.ssBClaimAge] || 1);
+  // ssAFull67/ssBFull67 store monthly PIA — multiply by 12 for annual income.
+  const ssA       = Number(m.ssAFull67 || 0) * 12 * (SS_FACTORS[m.ssAClaimAge] || 1);
+  const ssB       = Number(m.ssBFull67 || 0) * 12 * (SS_FACTORS[m.ssBClaimAge] || 1);
 
   const nameA = inc.earnerAName || "Earner A";
   const nameB = inc.earnerBName || "Earner B";
