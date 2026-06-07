@@ -13,33 +13,49 @@ import {
 } from "./financials.js";
 import { formatDollars, formatPercent, parseNumber } from "./utils.js";
 
-/* ─── Segment palette ─────────────────────────────────────── */
+/* ─── Segment palette — muted to avoid competing with the accent ── */
 const DONUT_COLORS = {
-  investments: "#00d4aa",
-  cash:        "#3b82f6",
-  realestate:  "#f59e0b",
-  alts:        "#6b7280",
+  investments: "#00d4aa",   // teal accent
+  cash:        "#4a7ab5",   // steel blue
+  realestate:  "#9a7a30",   // muted gold
+  alts:        "#5a5a72",   // muted slate
 };
 
 const PIE_COLORS = [
-  "#00d4aa","#3b82f6","#f59e0b","#a78bfa","#ef4444",
-  "#06b6d4","#84cc16","#f97316","#ec4899","#14b8a6",
+  "#00d4aa","#4a7ab5","#9a7a30","#7a5ab5","#c05070",
+  "#309090","#6a8a30","#b06030","#805090","#2a7a7a",
 ];
+
+function fmtShort(n) {
+  if (Math.abs(n) >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
+  if (Math.abs(n) >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
+  return formatDollars(n);
+}
 
 /* ─── Inline SVG charts ───────────────────────────────────── */
 
 // Donut chart using stroke-dasharray on overlapping circles.
 // Each segment starts where the previous one ended, rotated to begin at 12 o'clock.
-function buildDonut(segments, size = 160) {
+// Pass center = { value: string, label: string } to render text in the ring hole.
+function buildDonut(segments, size = 160, center = null) {
   const total = segments.reduce((s, g) => s + Math.max(0, g.value), 0);
   const cx = size / 2, cy = size / 2;
   const r  = size * 0.375;   // ring radius
   const sw = size * 0.155;   // stroke width (ring thickness)
   const C  = 2 * Math.PI * r;
 
+  const centerSvg = center ? `
+    <text x="${cx}" y="${cy - 7}" text-anchor="middle"
+      font-family="'DM Mono', monospace" font-size="13" fill="#e8e8f0"
+      font-variant-numeric="tabular-nums">${center.value}</text>
+    <text x="${cx}" y="${cy + 9}" text-anchor="middle"
+      font-family="'Syne', sans-serif" font-size="8" fill="#6b7280"
+      letter-spacing="0.08em">${center.label}</text>` : "";
+
   if (!total) {
     return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1e1e2e" stroke-width="${sw}"/>
+      ${centerSvg}
     </svg>`;
   }
 
@@ -59,6 +75,7 @@ function buildDonut(segments, size = 160) {
   return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1e1e2e" stroke-width="${sw}"/>
     ${circles.join("\n    ")}
+    ${centerSvg}
   </svg>`;
 }
 
@@ -112,21 +129,27 @@ function renderKPIBar() {
   const liquid  = liquidTotal();
   const reEq    = realEstateEquity();
   const annDebt = totalAnnualDebtService();
+  const alts    = alternativesTotal();
 
-  const kpi = (label, val, hero = false) => `
-    <div class="kpi${hero ? " kpi-hero" : ""}">
+  const kpi = (label, val) => `
+    <div class="kpi">
       <span class="kpi-label">${label}</span>
       <span class="kpi-value">${formatDollars(val)}</span>
     </div>`;
 
-  return `<div class="kpi-bar">
-    ${kpi("Net Worth", nw, true)}
-    ${kpi("Total Assets", assets)}
-    ${kpi("Total Liabilities", liab)}
-    ${kpi("Liquid Assets", liquid)}
-    ${kpi("Real Estate Equity", reEq)}
-    ${kpi("Annual Debt Service", annDebt)}
-  </div>`;
+  return `
+    <div class="nw-hero">
+      <span class="nw-label">Net Worth</span>
+      <span class="nw-value">${formatDollars(nw)}</span>
+      <span class="nw-sub">${formatDollars(assets)} total assets &nbsp;·&nbsp; ${formatDollars(liab)} liabilities</span>
+    </div>
+    <div class="kpi-bar">
+      ${kpi("Liquid Assets", liquid)}
+      ${kpi("Real Estate Equity", reEq)}
+      ${kpi("Alternatives", alts)}
+      ${kpi("Total Liabilities", liab)}
+      ${kpi("Annual Debt Service", annDebt)}
+    </div>`;
 }
 
 function renderNetWorthBreakdown() {
@@ -153,10 +176,12 @@ function renderNetWorthBreakdown() {
     </div>`;
   }).join("");
 
+  const center = total > 0 ? { value: fmtShort(total), label: "NET WORTH" } : null;
+
   return `<div class="card">
     <h3 class="card-title">Net Worth Breakdown</h3>
     <div class="donut-wrap">
-      <div class="donut-svg">${buildDonut(segments)}</div>
+      <div class="donut-svg">${buildDonut(segments, 160, center)}</div>
       <div class="donut-legend">${legend || '<p class="muted-note">No data yet.</p>'}</div>
     </div>
   </div>`;

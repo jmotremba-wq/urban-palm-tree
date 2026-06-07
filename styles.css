@@ -32,7 +32,7 @@ body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: var(--font-data);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -158,8 +158,9 @@ label,
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px 22px;
+  padding: 24px 26px;
   margin-bottom: 18px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
 }
 
 .card-title {
@@ -242,9 +243,9 @@ label,
 }
 
 .subtab-btn.active {
-  color: var(--bg);
-  background: var(--accent);
-  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0, 212, 170, 0.08);
+  border-color: rgba(0, 212, 170, 0.4);
   font-weight: 600;
 }
 
@@ -608,8 +609,9 @@ details[open] > summary::before {
 
 .stat .stat-value {
   font-family: var(--font-data);
-  font-size: 18px;
+  font-size: 20px;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .total-footer {
@@ -649,10 +651,49 @@ details[open] > summary::before {
 .dash-stagger > *:nth-child(4) { animation-delay: 0.18s; }
 .dash-stagger > *:nth-child(5) { animation-delay: 0.23s; }
 
+/* Net Worth hero */
+.nw-hero {
+  background: var(--surface);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  border-radius: var(--radius);
+  padding: 28px 30px 22px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 20px rgba(0, 212, 170, 0.06);
+}
+
+.nw-label {
+  display: block;
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.nw-value {
+  display: block;
+  font-family: var(--font-data);
+  font-size: 62px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+
+.nw-sub {
+  font-family: var(--font-data);
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* KPI bar */
 .kpi-bar {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -662,11 +703,11 @@ details[open] > summary::before {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px 16px;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.kpi-hero {
-  border-color: rgba(0, 212, 170, 0.45);
-  background: rgba(0, 212, 170, 0.05);
+.kpi:hover {
+  background: var(--surface-hover);
 }
 
 .kpi-label {
@@ -682,17 +723,13 @@ details[open] > summary::before {
 .kpi-value {
   display: block;
   font-family: var(--font-data);
-  font-size: 18px;
+  font-size: 20px;
   color: var(--text);
   text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.kpi-hero .kpi-value {
-  font-size: 24px;
-  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Two-column middle grid */
@@ -756,6 +793,7 @@ details[open] > summary::before {
 .legend-val {
   font-size: 12px;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .legend-pct {
@@ -1153,6 +1191,7 @@ details[open] > summary::before {
   font-size: 20px;
   color: var(--text);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .yeb-sub {
@@ -1196,12 +1235,17 @@ details[open] > summary::before {
  * ================================================================== */
 
 @media (max-width: 860px) {
-  .kpi-bar,
+  .kpi-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
   .ret-kpi-bar {
     grid-template-columns: repeat(3, 1fr);
   }
   .dash-grid-2 {
     grid-template-columns: 1fr;
+  }
+  .nw-value {
+    font-size: 48px;
   }
 }
 
@@ -1278,5 +1322,11 @@ details[open] > summary::before {
 
   .section-title {
     font-size: 19px;
+  }
+  .nw-value {
+    font-size: 36px;
+  }
+  .nw-hero {
+    padding: 20px 18px 18px;
   }
 }
