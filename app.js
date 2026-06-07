@@ -7,6 +7,7 @@
 import { state, saveNow } from "./state.js";
 import { renderSubTab } from "./inputs.js";
 import { renderDashboard } from "./dashboard.js";
+import { renderTax } from "./tax.js";
 
 // Maps a top-level tab key to its section element id.
 const TAB_SECTIONS = {
@@ -42,8 +43,9 @@ function showTab(tab) {
     if (sec) sec.classList.toggle("active", key === tab);
   }
 
-  // Re-render Dashboard on every visit so Inputs edits are reflected.
+  // Re-render on every visit so Inputs edits are reflected.
   if (tab === "dashboard") renderDashboard();
+  if (tab === "tax") renderTax();
 
   // Lazily render the active Inputs sub-tab when entering the Inputs tab.
   if (tab === "inputs") showSubTab(state.inputsSubTab);
