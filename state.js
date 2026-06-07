@@ -51,8 +51,10 @@ function seedDefaults() {
         fundCommitment: 200000,
         goldOunces: 11,
         goldPrice: 2400,
+        goldGrowthPct: 4,
         silverOunces: 50,
         silverPrice: 30,
+        silverGrowthPct: 5,
         bitcoin: 14000,
         rewardPoints: 7876,
       },
@@ -151,6 +153,7 @@ function hydrate(saved, defaults) {
       // earner names) appear for users with older saved blobs.
       income: { ...defaults.inputs.income, ...(savedInputs.income || {}) },
       military: { ...defaults.inputs.military, ...(savedInputs.military || {}) },
+      alternatives: { ...defaults.inputs.alternatives, ...(savedInputs.alternatives || {}) },
     },
     dashboard: { ...defaults.dashboard, ...(saved.dashboard || {}) },
     retirement: { ...defaults.retirement, ...(saved.retirement || {}) },

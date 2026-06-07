@@ -462,6 +462,54 @@ function renderLiquid(root) {
   root.appendChild(wrap);
 }
 
+/* ------------------------------------------------------------------ *
+ * Spot-price fetch helper (metals.live — free, no API key, CORS-open)
+ * Falls back gracefully: user can always type the price manually.
+ * ------------------------------------------------------------------ */
+
+async function fetchSpotPrice(metal) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch("https://api.metals.live/v1/spot", { signal: controller.signal });
+    if (!res.ok) throw new Error("http " + res.status);
+    const data = await res.json();
+    // Response shape: [{"gold": 2345.6, "silver": 29.4, ...}]
+    const price = Array.isArray(data) ? data[0]?.[metal] : data[metal];
+    if (typeof price !== "number" || price <= 0) throw new Error("no price");
+    return Math.round(price * 100) / 100;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Returns a small "↻ Live" button that fetches and calls onPrice(price).
+function makeFetchBtn(metal, onPrice) {
+  const btn = el("button", { type: "button", class: "btn-fetch", text: "↻ Live" });
+  btn.addEventListener("click", async () => {
+    btn.textContent = "…";
+    btn.disabled = true;
+    try {
+      const price = await fetchSpotPrice(metal);
+      onPrice(price);
+      btn.textContent = "✓";
+    } catch {
+      btn.textContent = "✗";
+    } finally {
+      setTimeout(() => { btn.textContent = "↻ Live"; btn.disabled = false; }, 1800);
+    }
+  });
+  return btn;
+}
+
+// Wraps an input + fetch button in a flex row.
+function priceRow(input, fetchBtn) {
+  const row = el("div", { class: "fetch-row" });
+  row.appendChild(input);
+  row.appendChild(fetchBtn);
+  return row;
+}
+
 /* ================================================================== *
  * SUB-TAB 3: Alternative & Illiquid Assets
  * ================================================================== */
@@ -494,22 +542,46 @@ function renderAlternatives(root) {
   grid.appendChild(field("Private Fund — Remaining Unfunded (auto-calc)", unfunded.node));
 
   // Gold
-  const goldVal = readonlyField("Gold Value:", formatDollars(alt.goldOunces * alt.goldPrice));
-  const recalcGold = () => goldVal.set(formatDollars(alt.goldOunces * alt.goldPrice));
+  const goldValDisplay = readonlyField("Gold Value:", formatDollars(alt.goldOunces * alt.goldPrice));
+  const recalcGold = () => goldValDisplay.set(formatDollars(alt.goldOunces * alt.goldPrice));
+
+  const goldPriceInput = boundInput("dollar", () => alt.goldPrice, (v) => { alt.goldPrice = v; recalcGold(); });
+  const goldBtn = makeFetchBtn("gold", (price) => {
+    alt.goldPrice = price;
+    goldPriceInput.value = formatDollars(price);
+    recalcGold();
+    save();
+  });
+
   grid.appendChild(field("Physical Gold — Ounces",
     boundInput("number", () => alt.goldOunces, (v) => (alt.goldOunces = v), { onCommit: recalcGold })));
-  grid.appendChild(field("Gold Price / oz",
-    boundInput("dollar", () => alt.goldPrice, (v) => (alt.goldPrice = v), { onCommit: recalcGold })));
-  grid.appendChild(field("Gold Value (auto-calc)", goldVal.node, { note: "Collectibles tax rate: 28%" }));
+  grid.appendChild(field("Gold Spot Price / oz", priceRow(goldPriceInput, goldBtn),
+    { note: "↻ Live fetches current spot from metals.live" }));
+  grid.appendChild(field("Gold Annual Growth Rate (%)",
+    boundInput("percent", () => alt.goldGrowthPct, (v) => (alt.goldGrowthPct = v)),
+    { note: "Used in Retirement Modeler projection" }));
+  grid.appendChild(field("Gold Value (auto-calc)", goldValDisplay.node, { note: "Collectibles tax rate: 28%" }));
 
   // Silver
-  const silverVal = readonlyField("Silver Value:", formatDollars(alt.silverOunces * alt.silverPrice));
-  const recalcSilver = () => silverVal.set(formatDollars(alt.silverOunces * alt.silverPrice));
+  const silverValDisplay = readonlyField("Silver Value:", formatDollars(alt.silverOunces * alt.silverPrice));
+  const recalcSilver = () => silverValDisplay.set(formatDollars(alt.silverOunces * alt.silverPrice));
+
+  const silverPriceInput = boundInput("dollar", () => alt.silverPrice, (v) => { alt.silverPrice = v; recalcSilver(); });
+  const silverBtn = makeFetchBtn("silver", (price) => {
+    alt.silverPrice = price;
+    silverPriceInput.value = formatDollars(price);
+    recalcSilver();
+    save();
+  });
+
   grid.appendChild(field("Physical Silver — Ounces",
     boundInput("number", () => alt.silverOunces, (v) => (alt.silverOunces = v), { onCommit: recalcSilver })));
-  grid.appendChild(field("Silver Price / oz",
-    boundInput("dollar", () => alt.silverPrice, (v) => (alt.silverPrice = v), { onCommit: recalcSilver })));
-  grid.appendChild(field("Silver Value (auto-calc)", silverVal.node, { note: "Collectibles tax rate: 28%" }));
+  grid.appendChild(field("Silver Spot Price / oz", priceRow(silverPriceInput, silverBtn),
+    { note: "↻ Live fetches current spot from metals.live" }));
+  grid.appendChild(field("Silver Annual Growth Rate (%)",
+    boundInput("percent", () => alt.silverGrowthPct, (v) => (alt.silverGrowthPct = v)),
+    { note: "Used in Retirement Modeler projection" }));
+  grid.appendChild(field("Silver Value (auto-calc)", silverValDisplay.node, { note: "Collectibles tax rate: 28%" }));
 
   // Misc
   grid.appendChild(field("Bitcoin",

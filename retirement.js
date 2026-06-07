@@ -36,9 +36,24 @@ function compute() {
   const realReturn = (1 + nominal) / (1 + inflation) - 1;
   const wr         = Number(r.withdrawalRate) / 100;
 
-  const investable =
-    liquidTotal() + alternativesTotal() +
+  // Metals are projected at their own growth rates (real terms); everything
+  // else grows at the portfolio real return.
+  const alt = state.inputs.alternatives;
+  const goldNominalRate   = Number(alt.goldGrowthPct   || 0) / 100;
+  const silverNominalRate = Number(alt.silverGrowthPct || 0) / 100;
+  const goldRealRate   = (1 + goldNominalRate)   / (1 + inflation) - 1;
+  const silverRealRate = (1 + silverNominalRate) / (1 + inflation) - 1;
+
+  const goldCurrent   = Number(alt.goldOunces   || 0) * Number(alt.goldPrice   || 0);
+  const silverCurrent = Number(alt.silverOunces || 0) * Number(alt.silverPrice || 0);
+
+  // Non-metals investable: liquid + (alts minus metals) + optional RE equity.
+  const nonMetalsInvestable =
+    liquidTotal() +
+    (alternativesTotal() - goldCurrent - silverCurrent) +
     (r.includeRealEstate ? realEstateEquity() : 0);
+
+  const investable = nonMetalsInvestable + goldCurrent + silverCurrent;
 
   const annualContribution = Number(r.annualContribution) || 0;
   const desiredSpending    = Number(r.desiredSpending) || 0;
@@ -69,10 +84,13 @@ function compute() {
   const portfolioDraw      = Math.max(0, desiredSpending - guaranteedAtRetire);
   const requiredPortfolio  = wr > 0 ? portfolioDraw / wr : 0;
 
-  // Portfolio value at retirement (real $): grown principal + grown contributions.
+  // Portfolio value at retirement (real $).
+  // Metals grow at their own real rates; everything else at the portfolio rate.
   const balanceAtRetirement =
-    futureValue(investable, realReturn, yearsToRetire) +
-    futureValueAnnuity(annualContribution, realReturn, yearsToRetire);
+    futureValue(nonMetalsInvestable, realReturn, yearsToRetire) +
+    futureValueAnnuity(annualContribution, realReturn, yearsToRetire) +
+    futureValue(goldCurrent, goldRealRate, yearsToRetire) +
+    futureValue(silverCurrent, silverRealRate, yearsToRetire);
 
   const surplus           = balanceAtRetirement - requiredPortfolio;
   const sustainableIncome = balanceAtRetirement * wr + guaranteedAtRetire;
