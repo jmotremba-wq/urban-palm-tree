@@ -54,10 +54,12 @@ label,
  * Layout shell
  * ------------------------------------------------------------------ */
 
+/* Prevent any child from overflowing the viewport horizontally */
 .app {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px 80px;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -688,6 +690,18 @@ details[open] > summary::before {
   font-size: 13px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Subtle hero highlight for first KPI in Tax + Retirement sections */
+.kpi-hero {
+  border-color: rgba(0, 212, 170, 0.35);
+  background: rgba(0, 212, 170, 0.04);
+}
+
+.kpi-hero .kpi-value {
+  color: var(--accent);
 }
 
 /* KPI bar */
@@ -960,6 +974,72 @@ details[open] > summary::before {
   margin: 10px 0 0;
 }
 
+/* Tax-bucket breakdown bar (liquid investments + retirement) */
+.bucket-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+
+.bucket {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.bucket-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.bucket-value {
+  font-family: var(--font-data);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bucket-pct {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-family: var(--font-data);
+}
+
+/* §121 and other contextual alert banner */
+.ctx-alert {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ctx-alert--warn {
+  background: rgba(255, 77, 109, 0.1);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  color: var(--danger);
+}
+
+.ctx-alert--caution {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+}
+
+.ctx-alert--info {
+  background: rgba(0, 212, 170, 0.07);
+  border: 1px solid rgba(0, 212, 170, 0.3);
+  color: var(--accent);
+}
+
 /* ================================================================== *
  * Tax Projector
  * ================================================================== */
@@ -1206,7 +1286,7 @@ details[open] > summary::before {
  * ================================================================== */
 
 .ret-kpi-bar {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .ret-chart {
@@ -1269,7 +1349,8 @@ details[open] > summary::before {
   .tax-grid-3,
   .form-grid,
   .form-grid.cols-3,
-  .yeb-grid {
+  .yeb-grid,
+  .bucket-bar {
     grid-template-columns: 1fr;
   }
   .field.span-2 {

@@ -56,6 +56,7 @@ function seedDefaults() {
         silverPrice: 30,
         silverGrowthPct: 5,
         bitcoin: 14000,
+        bitcoinGrowthPct: 15,
         rewardPoints: 7876,
       },
       realEstate: {

@@ -340,6 +340,47 @@ function renderConcentration() {
   </div>`;
 }
 
+/* ─── §121 home-sale exclusion alert ──────────────────────── */
+
+function render121Alert() {
+  const p = state.inputs.realEstate.primary;
+  if (!p || !p.value || !p.purchasePrice) return "";
+
+  const adjustedBasis  = Number(p.purchasePrice) + Number(p.improvements || 0);
+  const unrealizedGain = Number(p.value) - adjustedBasis;
+  if (unrealizedGain <= 0) return "";
+
+  const MFJ_EXCLUSION = 500000;
+  const taxableGain   = unrealizedGain - MFJ_EXCLUSION;
+  const held = new Date().getFullYear() - Number(p.purchaseYear || 0);
+
+  if (taxableGain > 0) {
+    return `<div class="ctx-alert ctx-alert--warn">
+      <div>
+        <strong>§121 Exclusion Cap Exceeded</strong> — Primary residence has
+        <strong>${formatDollars(unrealizedGain)}</strong> unrealized gain on an adjusted basis of
+        ${formatDollars(adjustedBasis)} (${formatDollars(p.purchasePrice)} purchase +
+        ${formatDollars(p.improvements || 0)} improvements, ${held} yr${held !== 1 ? "s" : ""} held).
+        MFJ §121 covers $500K — roughly <strong>${formatDollars(taxableGain)}</strong> would be
+        taxable on a sale at current value. Consider timing, additional improvements, or planning
+        for capital-gains exposure.
+      </div>
+    </div>`;
+  }
+
+  if (unrealizedGain >= MFJ_EXCLUSION * 0.75) {
+    return `<div class="ctx-alert ctx-alert--caution">
+      <div>
+        <strong>§121 Approaching Cap</strong> — ${formatDollars(unrealizedGain)} unrealized gain,
+        ${formatDollars(MFJ_EXCLUSION - unrealizedGain)} remaining before the $500K MFJ exclusion is exceeded.
+        Track additional improvements to maximize adjusted basis.
+      </div>
+    </div>`;
+  }
+
+  return "";
+}
+
 /* ─── Main export ─────────────────────────────────────────── */
 
 export function renderDashboard() {
@@ -352,6 +393,7 @@ export function renderDashboard() {
     <p class="section-sub">Live snapshot — updates automatically from your Inputs data.</p>
     <div class="dash-stagger">
       ${renderKPIBar()}
+      ${render121Alert()}
       <div class="dash-grid-2">
         ${renderNetWorthBreakdown()}
         ${renderRetirementProgress()}

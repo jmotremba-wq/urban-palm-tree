@@ -25,8 +25,10 @@ function compute() {
   const inc = state.inputs.income;
   const re  = state.inputs.realEstate;
 
-  const currentAge     = Number(state.dashboard.currentAge) || 0;
-  const retireAge      = Number(r.retireAge) || currentAge;
+  const currentAge = Number(state.dashboard.currentAge) || 0;
+  // Canonical retire age lives on the Dashboard; r.retireAge is kept in sync as
+  // a fallback for users with older saved state that hasn't been updated yet.
+  const retireAge = Number(state.dashboard.targetAge) || Number(r.retireAge) || currentAge;
   const lifeExpectancy = Math.max(retireAge + 1, Number(r.lifeExpectancy) || 90);
   const yearsToRetire  = Math.max(0, retireAge - currentAge);
 
@@ -39,21 +41,24 @@ function compute() {
   // Metals are projected at their own growth rates (real terms); everything
   // else grows at the portfolio real return.
   const alt = state.inputs.alternatives;
-  const goldNominalRate   = Number(alt.goldGrowthPct   || 0) / 100;
-  const silverNominalRate = Number(alt.silverGrowthPct || 0) / 100;
-  const goldRealRate   = (1 + goldNominalRate)   / (1 + inflation) - 1;
-  const silverRealRate = (1 + silverNominalRate) / (1 + inflation) - 1;
+  const goldNominalRate    = Number(alt.goldGrowthPct    || 0) / 100;
+  const silverNominalRate  = Number(alt.silverGrowthPct  || 0) / 100;
+  const bitcoinNominalRate = Number(alt.bitcoinGrowthPct || 0) / 100;
+  const goldRealRate    = (1 + goldNominalRate)    / (1 + inflation) - 1;
+  const silverRealRate  = (1 + silverNominalRate)  / (1 + inflation) - 1;
+  const bitcoinRealRate = (1 + bitcoinNominalRate) / (1 + inflation) - 1;
 
-  const goldCurrent   = Number(alt.goldOunces   || 0) * Number(alt.goldPrice   || 0);
-  const silverCurrent = Number(alt.silverOunces || 0) * Number(alt.silverPrice || 0);
+  const goldCurrent    = Number(alt.goldOunces   || 0) * Number(alt.goldPrice   || 0);
+  const silverCurrent  = Number(alt.silverOunces || 0) * Number(alt.silverPrice || 0);
+  const bitcoinCurrent = Number(alt.bitcoin || 0);
 
-  // Non-metals investable: liquid + (alts minus metals) + optional RE equity.
-  const nonMetalsInvestable =
+  // Hard assets are projected at their own rates; everything else at the portfolio rate.
+  const nonHardAssetInvestable =
     liquidTotal() +
-    (alternativesTotal() - goldCurrent - silverCurrent) +
+    (alternativesTotal() - goldCurrent - silverCurrent - bitcoinCurrent) +
     (r.includeRealEstate ? realEstateEquity() : 0);
 
-  const investable = nonMetalsInvestable + goldCurrent + silverCurrent;
+  const investable = nonHardAssetInvestable + goldCurrent + silverCurrent + bitcoinCurrent;
 
   const annualContribution = Number(r.annualContribution) || 0;
   const desiredSpending    = Number(r.desiredSpending) || 0;
@@ -87,10 +92,11 @@ function compute() {
   // Portfolio value at retirement (real $).
   // Metals grow at their own real rates; everything else at the portfolio rate.
   const balanceAtRetirement =
-    futureValue(nonMetalsInvestable, realReturn, yearsToRetire) +
+    futureValue(nonHardAssetInvestable, realReturn, yearsToRetire) +
     futureValueAnnuity(annualContribution, realReturn, yearsToRetire) +
     futureValue(goldCurrent, goldRealRate, yearsToRetire) +
-    futureValue(silverCurrent, silverRealRate, yearsToRetire);
+    futureValue(silverCurrent, silverRealRate, yearsToRetire) +
+    futureValue(bitcoinCurrent, bitcoinRealRate, yearsToRetire);
 
   const surplus           = balanceAtRetirement - requiredPortfolio;
   const sustainableIncome = balanceAtRetirement * wr + guaranteedAtRetire;
@@ -101,7 +107,7 @@ function compute() {
   // Drawdown: growth minus the portfolio draw needed each year (guaranteed
   // income may rise as Social Security begins, lowering the draw).
   const series = [];
-  let balance = investable;
+  let balance = investable;  // investable = all assets combined
   let depletedAge = null;
   for (let age = currentAge; age <= lifeExpectancy; age++) {
     series.push({ age, balance: Math.max(0, balance) });
@@ -120,7 +126,7 @@ function compute() {
     investable, annualContribution, desiredSpending,
     sources, guaranteedAtRetire, portfolioDraw, requiredPortfolio,
     balanceAtRetirement, surplus, sustainableIncome, incomeSurplus,
-    series, depletedAge,
+    series, depletedAge, guaranteedAtAge,
   };
 }
 
@@ -181,12 +187,20 @@ function renderKPIs(c) {
       <span class="kpi-value ${cls}">${val}</span>
     </div>`;
 
+  const depletionVal = c.depletedAge != null
+    ? `<span class="value-neg">age ${c.depletedAge}</span>`
+    : `age ${c.lifeExpectancy}+`;
+
   return `<div class="kpi-bar ret-kpi-bar">
-    ${kpi("Projected Portfolio", formatDollars(c.balanceAtRetirement), "", true)}
+    ${kpi("Projected at Retirement", formatDollars(c.balanceAtRetirement), "", true)}
     ${kpi("Required Portfolio", formatDollars(c.requiredPortfolio))}
     ${kpi(c.surplus >= 0 ? "Portfolio Surplus" : "Portfolio Gap",
           formatDollars(Math.abs(c.surplus)), signClass(c.surplus))}
     ${kpi("Sustainable Income", formatDollars(c.sustainableIncome))}
+    <div class="kpi">
+      <span class="kpi-label">Portfolio Lasts Until</span>
+      <span class="kpi-value">${depletionVal}</span>
+    </div>
   </div>`;
 }
 
@@ -199,10 +213,16 @@ function renderAssumptions(c) {
       ${suffix ? `<div class="field-note">${suffix}</div>` : ""}
     </div>`;
 
+  const retireAge = state.dashboard.targetAge || r.retireAge;
+
   return `<div class="card">
     <h3 class="card-title">Assumptions</h3>
     <div class="form-grid">
-      ${numField("Retirement Age", "retireAge", `Current age ${c.currentAge} — set on the Dashboard`)}
+      <div class="field">
+        <label>Retirement Age</label>
+        <input type="number" class="ret-age-field" value="${retireAge}" min="1" max="120"/>
+        <div class="field-note">Synced with Dashboard — ${c.yearsToRetire} yr${c.yearsToRetire !== 1 ? "s" : ""} away</div>
+      </div>
       ${numField("Life Expectancy", "lifeExpectancy")}
       ${numField("Nominal Return (%)", "nominalReturn", `Real return ≈ ${formatPercent(c.realReturn * 100, { decimals: 2 })} after inflation`)}
       ${numField("Inflation (%)", "inflation")}
@@ -216,7 +236,7 @@ function renderAssumptions(c) {
     </label>
     <div class="readonly-line" style="margin-top:14px">
       Starting investable portfolio: <span class="accent">${formatDollars(c.investable)}</span>
-      &middot; ${c.yearsToRetire} yrs to retirement
+      &middot; ${c.yearsToRetire} yr${c.yearsToRetire !== 1 ? "s" : ""} to retirement
     </div>
   </div>`;
 }
@@ -254,9 +274,28 @@ function renderIncomeLayers(c) {
     ? `<p class="muted-note">⚠ At this spending level the portfolio depletes around age ${c.depletedAge}.</p>`
     : `<p class="muted-note">Portfolio sustains spending through age ${c.lifeExpectancy}.</p>`;
 
+  // Identify the "income bridge" — years where the portfolio must cover the full
+  // spending need because guaranteed income hasn't started yet.
+  const bridgeEndAge = c.sources.length > 0
+    ? Math.max(...c.sources.map((s) => s.startAge === 0 ? c.retireAge : s.startAge))
+    : null;
+  const bridgeYears = bridgeEndAge != null ? Math.max(0, bridgeEndAge - c.retireAge) : 0;
+  const bridgeDraw   = c.desiredSpending - c.guaranteedAtAge(c.retireAge);
+  const bridgeAlert = bridgeYears > 1
+    ? `<div class="ctx-alert ctx-alert--caution">
+        <div>
+          <strong>Income Bridge Gap — ${bridgeYears} yr${bridgeYears !== 1 ? "s" : ""}</strong><br/>
+          From retirement (age ${c.retireAge}) until all income sources start (age ${bridgeEndAge}),
+          the portfolio must cover <strong>${formatDollars(bridgeDraw)}/yr</strong> before
+          pension and Social Security phase in.
+        </div>
+       </div>`
+    : "";
+
   return `<div class="card">
     <h3 class="card-title">Retirement Income Layering</h3>
     ${verdict}
+    ${bridgeAlert}
     <table>
       <thead><tr>
         <th>Source</th>
@@ -310,8 +349,20 @@ export function renderRetirement() {
       </div>
     </div>`;
 
-  // Wire assumption fields. "change" fires on blur/Enter so we don't re-render
-  // mid-typing.
+  // Retirement age field — writes to both dashboard and retirement state so they
+  // stay in sync regardless of which tab the user edits the value from.
+  const retAgeField = sec.querySelector(".ret-age-field");
+  if (retAgeField) {
+    retAgeField.addEventListener("change", (e) => {
+      const v = parseNumber(e.target.value);
+      state.dashboard.targetAge = v;
+      state.retirement.retireAge = v;
+      save();
+      renderRetirement();
+    });
+  }
+
+  // All other assumption fields.
   sec.querySelectorAll(".ret-field").forEach((input) => {
     input.addEventListener("change", (e) => {
       state.retirement[e.target.dataset.ret] = parseNumber(e.target.value);

@@ -319,9 +319,31 @@ function renderLiquid(root) {
   );
   table.appendChild(tfoot);
 
+  // Tax-bucket breakdown: Taxable / Tax-Deferred / Tax-Free+HSA
+  const TAXABLE_TYPES   = ["Taxable Brokerage", "Cash-Banking"];
+  const DEFERRED_TYPES  = ["Traditional 401(k)", "Traditional IRA", "SEP IRA", "SIMPLE IRA", "Solo 401(k)"];
+  const FREE_TYPES      = ["Roth IRA", "Roth 401(k)", "HSA"];
+
+  const bucketTaxable  = el("div", { class: "bucket-value" });
+  const bucketDeferred = el("div", { class: "bucket-value" });
+  const bucketFree     = el("div", { class: "bucket-value" });
+  const bucketTaxableP  = el("div", { class: "bucket-pct" });
+  const bucketDeferredP = el("div", { class: "bucket-pct" });
+  const bucketFreeP     = el("div", { class: "bucket-pct" });
+
   const refreshTotal = () => {
     const total = state.inputs.accounts.reduce((s, a) => s + Number(a.balance || 0), 0);
     totalCell.textContent = formatDollars(total);
+    const taxable  = state.inputs.accounts.filter(a => TAXABLE_TYPES.includes(a.type)).reduce((s,a) => s + Number(a.balance||0), 0);
+    const deferred = state.inputs.accounts.filter(a => DEFERRED_TYPES.includes(a.type)).reduce((s,a) => s + Number(a.balance||0), 0);
+    const free     = state.inputs.accounts.filter(a => FREE_TYPES.includes(a.type)).reduce((s,a) => s + Number(a.balance||0), 0);
+    const denom    = taxable + deferred + free || 1;
+    bucketTaxable.textContent  = formatDollars(taxable);
+    bucketDeferred.textContent = formatDollars(deferred);
+    bucketFree.textContent     = formatDollars(free);
+    bucketTaxableP.textContent  = (taxable  / denom * 100).toFixed(0) + "%";
+    bucketDeferredP.textContent = (deferred / denom * 100).toFixed(0) + "%";
+    bucketFreeP.textContent     = (free     / denom * 100).toFixed(0) + "%";
   };
 
   const addAccountRow = (acct) => {
@@ -369,6 +391,23 @@ function renderLiquid(root) {
       },
     })
   );
+
+  // Tax-bucket summary bar
+  const bucketLabel = el("div", { class: "field-note", text: "Tax Treatment Breakdown", style: "margin-top:16px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.07em;font-family:var(--font-head);" });
+  const bucketBar = el("div", { class: "bucket-bar" });
+  const makeBucket = (labelText, valueEl, pctEl) => {
+    const b = el("div", { class: "bucket" });
+    b.appendChild(el("div", { class: "bucket-label", text: labelText }));
+    b.appendChild(valueEl);
+    b.appendChild(pctEl);
+    return b;
+  };
+  bucketBar.appendChild(makeBucket("Taxable",        bucketTaxable,  bucketTaxableP));
+  bucketBar.appendChild(makeBucket("Tax-Deferred",   bucketDeferred, bucketDeferredP));
+  bucketBar.appendChild(makeBucket("Tax-Free / HSA", bucketFree,     bucketFreeP));
+  card.appendChild(bucketLabel);
+  card.appendChild(bucketBar);
+
   wrap.appendChild(card);
 
   // ---- Taxable Concentration (collapsible) ----
@@ -583,9 +622,12 @@ function renderAlternatives(root) {
     { note: "Used in Retirement Modeler projection" }));
   grid.appendChild(field("Silver Value (auto-calc)", silverValDisplay.node, { note: "Collectibles tax rate: 28%" }));
 
-  // Misc
-  grid.appendChild(field("Bitcoin",
+  // Bitcoin
+  grid.appendChild(field("Bitcoin / Crypto",
     boundInput("dollar", () => alt.bitcoin, (v) => (alt.bitcoin = v))));
+  grid.appendChild(field("Bitcoin Annual Growth Rate (%)",
+    boundInput("percent", () => alt.bitcoinGrowthPct, (v) => (alt.bitcoinGrowthPct = v)),
+    { note: "Used in Retirement Modeler projection" }));
   grid.appendChild(field("Reward Points",
     boundInput("number", () => alt.rewardPoints, (v) => (alt.rewardPoints = v))));
 
