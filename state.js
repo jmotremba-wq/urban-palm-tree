@@ -102,6 +102,8 @@ function seedDefaults() {
       ],
       military: {
         pensionMultiplierPct: 36,
+        high3PayGrade: "",
+        high3Yos: 20,
         high3: 0,
         pensionStartAge: 60,
         vaRatingPct: 70,

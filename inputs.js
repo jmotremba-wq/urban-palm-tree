@@ -875,6 +875,47 @@ function renderDebt(root) {
  * SUB-TAB 6: Military & Benefits
  * ================================================================== */
 
+// 2025 DoD monthly base pay table: { grade: [[minYOS, monthlyPay], ...] }
+const MIL_PAY_2025 = {
+  "E-1": [[0, 2058]],
+  "E-2": [[0, 2309]],
+  "E-3": [[0, 2432], [2, 2504], [3, 2633]],
+  "E-4": [[0, 2613], [3, 2742], [4, 2903], [6, 3017]],
+  "E-5": [[0, 2847], [3, 2949], [4, 3065], [6, 3191], [8, 3278], [10, 3384], [12, 3520]],
+  "E-6": [[0, 3345], [8, 3491], [10, 3618], [12, 3770], [14, 3907], [16, 4037], [18, 4186], [20, 4329], [22, 4470]],
+  "E-7": [[0, 3862], [8, 3945], [10, 4144], [12, 4344], [14, 4432], [16, 4597], [18, 4719], [20, 4904], [22, 5066], [24, 5223], [26, 5349]],
+  "E-8": [[0, 4985], [12, 5069], [14, 5136], [16, 5197], [18, 5324], [20, 5497], [22, 5703], [24, 5888], [26, 5993]],
+  "E-9": [[0, 5997], [18, 6146], [20, 6356], [22, 6662], [24, 6869], [26, 7158]],
+  "W-1": [[0, 3788], [4, 4205], [6, 4601], [8, 4838], [10, 5085], [12, 5375], [14, 5614], [16, 5863], [18, 5993], [20, 6132], [22, 6278], [24, 6427]],
+  "W-2": [[0, 4374], [4, 4775], [6, 5087], [8, 5328], [10, 5558], [12, 5845], [14, 6079], [16, 6316], [18, 6492], [20, 6623], [22, 6755], [24, 6891]],
+  "W-3": [[0, 4958], [4, 5277], [6, 5612], [8, 5921], [10, 6241], [12, 6563], [14, 6889], [16, 7219], [18, 7454], [20, 7684], [22, 7854], [24, 8028]],
+  "W-4": [[0, 5468], [4, 5841], [6, 6175], [8, 6512], [10, 6861], [12, 7198], [14, 7537], [16, 7875], [18, 8208], [20, 8543], [22, 8810], [24, 9075]],
+  "W-5": [[20, 9049], [22, 9312], [24, 9575], [26, 9837]],
+  "O-1": [[0, 3835], [4, 4985]],
+  "O-2": [[0, 4416], [4, 6042], [6, 7028]],
+  "O-3": [[0, 5122], [4, 5809], [6, 6242], [8, 6534], [10, 6822], [12, 6985]],
+  "O-4": [[0, 5837], [4, 6741], [6, 7183], [8, 7531], [10, 7997], [12, 8441], [14, 8882]],
+  "O-5": [[0, 6756], [4, 7558], [6, 7920], [8, 8225], [10, 8971], [12, 9426], [14, 9870], [16, 10315], [18, 10577], [20, 10835]],
+  "O-6": [[0, 8139], [4, 8946], [6, 9264], [8, 9581], [10, 9905], [14, 11323], [16, 11834], [18, 12346], [20, 12855], [22, 13356], [26, 14076]],
+  "O-7": [[0, 12165], [4, 12406], [6, 12651], [8, 13219], [10, 13484], [20, 14817], [22, 15340]],
+  "O-8": [[0, 14620], [4, 14877], [6, 15392], [8, 15674], [10, 16224], [20, 18053]],
+  "O-9": [[0, 19659]],
+  "O-10": [[0, 20588]],
+};
+
+const MIL_GRADES = Object.keys(MIL_PAY_2025);
+const MIL_YOS_OPTIONS = ["0","2","4","6","8","10","12","14","16","18","20","22","24","26","28","30"];
+
+function lookupMonthlyPay(grade, yos) {
+  const steps = MIL_PAY_2025[grade];
+  if (!steps || !steps.length) return 0;
+  let pay = steps[0][1];
+  for (const [minYos, monthlyPay] of steps) {
+    if (yos >= minYos) pay = monthlyPay;
+  }
+  return pay;
+}
+
 const SS_FACTORS = { 62: 0.7, 67: 1.0, 70: 1.24 };
 
 function renderMilitary(root) {
@@ -893,10 +934,44 @@ function renderMilitary(root) {
   const recalcPension = () =>
     pensionOut.set(formatDollars(m.high3 * (m.pensionMultiplierPct / 100)));
 
+  // High-3 pay input (auto-populated by grade/YOS but still manually editable)
+  const high3Input = boundInput("dollar", () => m.high3, (v) => (m.high3 = v), { onCommit: recalcPension });
+
+  // Pay Grade dropdown — auto-populates high3 from 2025 pay table
+  const gradeOptions = ["(manual)", ...MIL_GRADES];
+  const gradeSelect = boundSelect(gradeOptions,
+    () => m.high3PayGrade || "(manual)",
+    (v) => {
+      m.high3PayGrade = v === "(manual)" ? "" : v;
+      if (m.high3PayGrade) {
+        m.high3 = lookupMonthlyPay(m.high3PayGrade, m.high3Yos) * 12;
+        high3Input.value = formatDollars(m.high3);
+        recalcPension();
+      }
+      save();
+    }
+  );
+
+  // Years of Service dropdown — re-looks up pay when grade is set
+  const yosSelect = boundSelect(MIL_YOS_OPTIONS,
+    () => String(m.high3Yos),
+    (v) => {
+      m.high3Yos = Number(v);
+      if (m.high3PayGrade) {
+        m.high3 = lookupMonthlyPay(m.high3PayGrade, m.high3Yos) * 12;
+        high3Input.value = formatDollars(m.high3);
+        recalcPension();
+      }
+      save();
+    }
+  );
+
   grid.appendChild(field("Pension Multiplier (%)",
     boundInput("percent", () => m.pensionMultiplierPct, (v) => (m.pensionMultiplierPct = v), { onCommit: recalcPension })));
-  grid.appendChild(field("High-3 Average Base Pay",
-    boundInput("dollar", () => m.high3, (v) => (m.high3 = v), { onCommit: recalcPension })));
+  grid.appendChild(field("Pay Grade (2025 table)", gradeSelect));
+  grid.appendChild(field("Years of Service", yosSelect));
+  grid.appendChild(field("High-3 Annual Base Pay", high3Input,
+    { note: "2025 pay table · select grade above or type to override" }));
   grid.appendChild(field("Estimated Annual Pension (auto-calc)", pensionOut.node));
   grid.appendChild(field("Pension Start Age",
     boundInput("number", () => m.pensionStartAge, (v) => (m.pensionStartAge = v))));
