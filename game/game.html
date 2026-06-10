@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acorn Quest — A Woodland Adventure</title>
+  <link rel="stylesheet" href="game.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="256" height="192"></canvas>
+
+    <!-- HUD overlay (hearts / acorns / keys) -->
+    <div id="hud"></div>
+
+    <!-- Dialog / text box overlay -->
+    <div id="dialog">
+      <p id="dialog-text"></p>
+      <span class="dialog-more">▶</span>
+    </div>
+
+    <!-- Title screen overlay -->
+    <div id="title" class="show">
+      <h1>Acorn Quest</h1>
+      <p class="subtitle">A cozy woodland adventure</p>
+      <div class="menu">
+        <button id="btn-continue">Continue</button>
+        <button id="btn-new">New Game</button>
+      </div>
+      <p class="hint">Arrow keys / WASD to walk &nbsp;•&nbsp; SPACE to talk, read &amp; push</p>
+    </div>
+  </div>
+
+  <p class="footer">A little fox helps find the lost acorns. Made to play together.</p>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
