@@ -173,6 +173,18 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
   <hr class="slider-divider">
   <div class="slider-row">
     <div class="slider-top">
+      <span class="slider-label">Starting balance</span>
+      <span class="slider-val green" id="init-display">$0</span>
+      <span class="slider-sub">initial lump sum · today's dollars</span>
+    </div>
+    <input type="range" class="green-track" id="init-slider" min="0" max="6" value="0" step="1">
+    <div class="slider-ticks">
+      <span>$0</span><span>$1K</span><span>$5K</span><span>$10K</span><span>$25K</span><span>$50K</span><span>$100K</span>
+    </div>
+  </div>
+  <hr class="slider-divider">
+  <div class="slider-row">
+    <div class="slider-top">
       <span class="slider-label">Contribution window</span>
       <span class="slider-val red" id="start-age-display">17</span>
       <span class="slider-sub" style="font-size:.82rem;padding:0 .1rem">→</span>
@@ -257,10 +269,10 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 <script>
 // ── MODEL ─────────────────────────────────────────────────
 const EA=67, MN=0.07/12, MI=0.025/12, WIN_MIN=15;
-let rows=[], startAmt=100, startAge=17, stopAge=67, cachedStopRows=[];
+let rows=[], startAmt=100, initAmt=0, startAge=17, stopAge=67, cachedStopRows=[];
 
 function buildRows(start){
-  let port=0,infl=1,totNom=0;
+  let port=initAmt,infl=1,totNom=0;
   const r=[];
   for(let yr=1;yr<=EA-startAge;yr++){
     const mNom=start*yr;
@@ -277,7 +289,7 @@ function buildRows(start){
 
 // contributions stop at sAge but portfolio keeps compounding to EA
 function buildStopRows(start,sAge){
-  let port=0,infl=1,totNom=0;
+  let port=initAmt,infl=1,totNom=0;
   const r=[];
   for(let yr=1;yr<=EA-startAge;yr++){
     const age=startAge+yr;
@@ -316,7 +328,7 @@ function niceYTicks(maxP,target=5){
 }
 // Reference portfolio: 17→67 full run at current startAmt (always the ideal baseline)
 function baselinePort(start){
-  let port=0,infl=1;
+  let port=initAmt,infl=1;
   for(let yr=1;yr<=EA-17;yr++){
     const mNom=start*yr;
     for(let m=0;m<12;m++){port=port*(1+MN)+mNom;infl*=(1+MI);}
@@ -372,8 +384,8 @@ function update(){
     `Your window (${startAge}→67) — full contribution run`;
   document.getElementById('stats-full').innerHTML=[
     {label:'Portfolio at 67',val:ssf(L.portReal),cls:'g',hero:'hero-g',sub:"your window · today's dollars"},
-    {label:'You put in (real)',val:ssf(L.totReal),cls:'a',hero:'',sub:'inflation-adjusted total'},
-    {label:'Market gain (real)',val:ssf(L.portReal-L.totReal),cls:'g',hero:'',sub:'above contributions'},
+    {label:'You put in (real)',val:ssf(L.totReal+initAmt),cls:'a',hero:'',sub:initAmt>0?'contributions + starting balance':'inflation-adjusted total'},
+    {label:'Market gain (real)',val:ssf(L.portReal-L.totReal-initAmt),cls:'g',hero:'',sub:'above total input'},
     {label:'Final monthly (real)',val:ssf(L.mReal)+'/mo',cls:'',hero:'',sub:'$'+L.mNom.toLocaleString()+' nominal'},
   ].map(x=>`<div class="stat ${x.hero}"><div class="st-label">${x.label}</div><div class="st-val ${x.cls}">${x.val}</div><div class="st-sub">${x.sub}</div></div>`).join('');
 
@@ -465,9 +477,11 @@ function update(){
 
 // ── SLIDERS ────────────────────────────────────────────────
 const amtSlider=document.getElementById('amt-slider');
+const initSlider=document.getElementById('init-slider');
 const startAgeSlider=document.getElementById('start-age-slider');
 const stopAgeSlider=document.getElementById('stop-age-slider');
 const amounts=[20,30,40,50,60,70,80,90,100];
+const initAmounts=[0,1000,5000,10000,25000,50000,100000];
 
 function pct(slider){
   return ((+slider.value - +slider.min)/(+slider.max - +slider.min)*100)+'%';
@@ -492,6 +506,14 @@ amtSlider.addEventListener('input',()=>{
   startAmt=amounts[+amtSlider.value-1];
   document.getElementById('amt-display').textContent='$'+startAmt;
   syncSlider(amtSlider);
+  rows=buildRows(startAmt);
+  update();
+});
+
+initSlider.addEventListener('input',()=>{
+  initAmt=initAmounts[+initSlider.value];
+  document.getElementById('init-display').textContent=initAmt===0?'$0':ssf(initAmt);
+  syncSlider(initSlider);
   rows=buildRows(startAmt);
   update();
 });
@@ -804,6 +826,7 @@ function drawAll(){drawChart1();drawChart2();}
 new ResizeObserver(drawAll).observe(document.querySelector('.charts'));
 
 syncSlider(amtSlider);
+syncSlider(initSlider);
 syncWindowSlider();
 rows=buildRows(startAmt);
 window.addEventListener('load',()=>{update();startAnim();});
