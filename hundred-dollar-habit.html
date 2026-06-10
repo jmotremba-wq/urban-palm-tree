@@ -137,14 +137,24 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
   .thead,.trow{grid-template-columns:44px 1fr 1fr 1fr}
   .th:nth-child(3),.td:nth-child(3){display:none}
 }
+
+/* Dual-handle range slider */
+.dual-range{position:relative;height:22px;margin:2px 0}
+.dual-track{position:absolute;top:50%;left:0;right:0;height:6px;border-radius:3px;transform:translateY(-50%);pointer-events:none;background:var(--border)}
+.dual-range input[type=range]{position:absolute;top:50%;left:0;transform:translateY(-50%);width:100%;margin:0;height:6px;background:transparent;pointer-events:none;-webkit-appearance:none;appearance:none;outline:none}
+.dual-range input[type=range]::-webkit-slider-thumb{pointer-events:all;-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--red);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2);cursor:pointer}
+.dual-range input[type=range]::-moz-range-thumb{pointer-events:all;width:20px;height:20px;border-radius:50%;background:var(--red);border:2px solid #fff;cursor:pointer}
+/* Absolutely-positioned ticks so they align precisely with slider positions */
+.window-ticks{position:relative;height:16px;margin-top:1px}
+.window-ticks span{position:absolute;transform:translateX(-50%);font-family:var(--mono);font-size:.56rem;color:var(--faint)}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<p class="eyebrow">All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age 17–67</p>
+<p class="eyebrow" id="eyebrow">All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age 17–67</p>
 <h1>Start with <em id="h1-amount">$100.</em><br>Retire with <em id="h1-result">$2.1M.</em></h1>
-<p class="subtitle">Invest a fixed amount at 17, then add that same amount every year. <strong>Every number is in today's purchasing power.</strong> Adjust when you stop to see what it costs you.</p>
+<p class="subtitle">Set your contribution window — drag either end. <strong>Every number is in today's purchasing power.</strong> See what starting late or stopping early really costs.</p>
 
 <!-- SLIDERS -->
 <div class="sliders-wrap">
@@ -163,24 +173,35 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
   <hr class="slider-divider">
   <div class="slider-row">
     <div class="slider-top">
-      <span class="slider-label">Stop contributing at age</span>
-      <span class="slider-val red" id="stop-display">67</span>
-      <span class="slider-sub" id="stop-sub">full run — no stop</span>
+      <span class="slider-label">Contribution window</span>
+      <span class="slider-val red" id="start-age-display">17</span>
+      <span class="slider-sub" style="font-size:.82rem;padding:0 .1rem">→</span>
+      <span class="slider-val red" id="stop-age-display">67</span>
+      <span class="slider-sub" id="window-sub">50 years · default</span>
     </div>
-    <input type="range" class="red-track" id="stop-slider" min="18" max="67" value="67" step="1">
-    <div class="slider-ticks">
-      <span>18</span><span>25</span><span>32</span><span>39</span><span>46</span><span>53</span><span>60</span><span>67</span>
+    <div class="dual-range">
+      <div class="dual-track" id="dual-track"></div>
+      <input type="range" id="start-age-slider" min="15" max="67" value="17" step="1">
+      <input type="range" id="stop-age-slider" min="15" max="67" value="67" step="1">
+    </div>
+    <div class="window-ticks">
+      <span style="left:0%">15</span>
+      <span style="left:19%">25</span>
+      <span style="left:38%">35</span>
+      <span style="left:58%">45</span>
+      <span style="left:77%">55</span>
+      <span style="left:100%">67</span>
     </div>
   </div>
 </div>
 
 <!-- FULL-RUN STATS -->
-<div class="stats-label">If you go the full distance (age 67)</div>
+<div class="stats-label" id="full-stats-label">Your window — contribute all the way to 67</div>
 <div class="stats-full" id="stats-full"></div>
 
-<!-- STOP STATS -->
+<!-- COMPARISON STATS -->
 <div id="stop-stats-wrap">
-  <div class="stats-label" id="stop-stats-label">If you stop at age 67</div>
+  <div class="stats-label" id="stop-stats-label">vs. ideal (start at 17, full run)</div>
   <div class="stats-stop" id="stats-stop"></div>
 </div>
 
@@ -227,28 +248,28 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
   <div class="tbody" id="tbody"></div>
 </div>
 
-<div class="footnote">
-  Assumptions: Start age 17 · Retire 67 · 50 years · Contribution = starting amount × year number per month · 7% nominal annual return, compounded monthly · 2.5% annual inflation · "Stop contributing" scenario: contributions cease at stop age, portfolio continues compounding to 67 · All values in today's purchasing power · No taxes, fees, or gaps modeled.
+<div class="footnote" id="footnote">
+  Assumptions: Start age 17 · Retire 67 · 50 years · Contribution = starting amount × year number per month · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age 67 · All values in today's purchasing power · No taxes, fees, or gaps modeled.
 </div>
 </div>
 <div id="tip"></div>
 
 <script>
 // ── MODEL ─────────────────────────────────────────────────
-const SA=17, EA=67, MN=0.07/12, MI=0.025/12;
-let rows=[], startAmt=100, stopAge=67, cachedStopRows=[];
+const EA=67, MN=0.07/12, MI=0.025/12, WIN_MIN=15;
+let rows=[], startAmt=100, startAge=17, stopAge=67, cachedStopRows=[];
 
 function buildRows(start){
   let port=0,infl=1,totNom=0;
   const r=[];
-  for(let yr=1;yr<=EA-SA;yr++){
+  for(let yr=1;yr<=EA-startAge;yr++){
     const mNom=start*yr;
     for(let m=0;m<12;m++){
       port=port*(1+MN)+mNom;
       totNom+=mNom;
       infl*=(1+MI);
     }
-    r.push({age:SA+yr,yr,mNom,mReal:mNom/infl,totNom,
+    r.push({age:startAge+yr,yr,mNom,mReal:mNom/infl,totNom,
       totReal:totNom/infl,portReal:port/infl,portNom:port});
   }
   return r;
@@ -258,8 +279,8 @@ function buildRows(start){
 function buildStopRows(start,sAge){
   let port=0,infl=1,totNom=0;
   const r=[];
-  for(let yr=1;yr<=EA-SA;yr++){
-    const age=SA+yr;
+  for(let yr=1;yr<=EA-startAge;yr++){
+    const age=startAge+yr;
     const mNom=age<=sAge?start*yr:0;
     for(let m=0;m<12;m++){
       port=port*(1+MN)+mNom;
@@ -293,6 +314,23 @@ function niceYTicks(maxP,target=5){
   for(let v=step;v<=maxP*1.08;v+=step)ticks.push(v);
   return ticks;
 }
+// Reference portfolio: 17→67 full run at current startAmt (always the ideal baseline)
+function baselinePort(start){
+  let port=0,infl=1;
+  for(let yr=1;yr<=EA-17;yr++){
+    const mNom=start*yr;
+    for(let m=0;m<12;m++){port=port*(1+MN)+mNom;infl*=(1+MI);}
+  }
+  return port/infl;
+}
+// Dynamic x-axis age labels based on current startAge
+function chartXAges(){
+  const ages=[];
+  let a=Math.ceil((startAge+1)/5)*5;
+  while(a<=EA){ages.push(a);a+=5;}
+  if(!ages.length||ages[ages.length-1]!==EA)ages.push(EA);
+  return ages;
+}
 
 // ── ANIMATION ─────────────────────────────────────────────
 let animProgress=0, animFrame=null;
@@ -317,59 +355,73 @@ function startAnim(){
 function update(){
   cachedStopRows=buildStopRows(startAmt,stopAge);
   const L=rows[rows.length-1];
-  const stopRow=rows.find(r=>r.age===stopAge)||rows[rows.length-1];
   const stopRows=cachedStopRows;
-  const stopL=stopRows[stopRows.length-1];
+  const isDefault=startAge===17&&stopAge===EA;
+  const isFullRun=stopAge===EA;
+  const yrs=stopAge-startAge;
 
-  // heading
+  // eyebrow + heading
+  document.getElementById('eyebrow').textContent=
+    `All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age ${startAge}–67`;
   document.getElementById('h1-amount').textContent='$'+startAmt+'.';
   document.getElementById('h1-result').textContent=sf(L.portReal)+'.';
 
-  // full-run stats — compact M/K values so tiles fit on phones
+  // full-run stats (your window, always contributing to 67)
+  document.getElementById('full-stats-label').textContent=
+    isDefault?'Your window — contribute all the way to 67':
+    `Your window (${startAge}→67) — full contribution run`;
   document.getElementById('stats-full').innerHTML=[
-    {label:'Portfolio at 67',val:ssf(L.portReal),cls:'g',hero:'hero-g',sub:"full run · today's dollars"},
+    {label:'Portfolio at 67',val:ssf(L.portReal),cls:'g',hero:'hero-g',sub:"your window · today's dollars"},
     {label:'You put in (real)',val:ssf(L.totReal),cls:'a',hero:'',sub:'inflation-adjusted total'},
     {label:'Market gain (real)',val:ssf(L.portReal-L.totReal),cls:'g',hero:'',sub:'above contributions'},
     {label:'Final monthly (real)',val:ssf(L.mReal)+'/mo',cls:'',hero:'',sub:'$'+L.mNom.toLocaleString()+' nominal'},
   ].map(x=>`<div class="stat ${x.hero}"><div class="st-label">${x.label}</div><div class="st-val ${x.cls}">${x.val}</div><div class="st-sub">${x.sub}</div></div>`).join('');
 
-  // stop stats
-  const isFullRun=stopAge===EA;
-  document.getElementById('stop-stats-label').textContent=
-    isFullRun?'If you stop at age 67 (same as full run)':`If you stop contributing at age ${stopAge}`;
+  // comparison stats: always baseline vs. your actual scenario (with stopAge applied)
+  const baseP=baselinePort(startAmt);
+  const yourP=stopRows[stopRows.length-1].portReal;
+  const costP=Math.max(0,baseP-yourP);
+  const costPct=Math.round(costP/baseP*100);
+  const windowDesc=isDefault?`${yrs} years contributing`:
+    isFullRun?`start ${startAge}, contribute to 67`:
+    startAge===17?`stop at ${stopAge}, coast to 67`:
+    `age ${startAge}→${stopAge}, coast to 67`;
 
-  const cashOut=stopRow.portReal;
-  const keepGrowing=stopL.portReal;
+  document.getElementById('stop-stats-label').textContent=
+    isDefault?'Ideal run — no adjustments':
+    startAge>17&&stopAge<EA?'Your window vs. ideal (17→67)':
+    startAge>17?`Late start vs. ideal (17→67)`:
+    `Early stop vs. ideal (17→67)`;
 
   document.getElementById('stats-stop').innerHTML=[
-    {label:'Cash out at age '+stopAge,val:ssf(cashOut),cls:'r',hero:'hero-r',sub:'walk away with this today'},
-    {label:'Keep growing to 67',val:ssf(keepGrowing),cls:'o',hero:'hero-o',sub:'stop contributing, stay invested'},
-    {label:'Cost of stopping early',val:isFullRun?'—':ssf(L.portReal-keepGrowing),cls:'r',hero:'',sub:isFullRun?'no early stop':`you give up ${Math.round((L.portReal-keepGrowing)/L.portReal*100)}% of the full-run pot`},
+    {label:'Ideal (17 → 67)',val:ssf(baseP),cls:'g',hero:'',sub:'start at 17, contribute to 67'},
+    {label:'Your scenario',val:ssf(yourP),cls:isDefault?'g':'o',hero:isDefault?'hero-g':'hero-o',sub:windowDesc},
+    {label:'You give up',val:isDefault?'—':ssf(costP),cls:'r',hero:'',sub:isDefault?'on track — no cost':`${costPct}% of the ideal pot`},
   ].map(x=>`<div class="stat ${x.hero}"><div class="st-label">${x.label}</div><div class="st-val ${x.cls}">${x.val}</div><div class="st-sub">${x.sub}</div></div>`).join('');
 
-  // decay strip — show ages up to stopAge
-  const decAges=[17,25,32,40,50,60,67].filter(a=>a<=stopAge||a===17);
-  if(!decAges.includes(stopAge)&&stopAge<67)decAges.push(stopAge);
-  decAges.sort((a,b)=>a-b);
+  // decay strip: ages within the contribution window
+  const decPool=[startAge+1,25,32,40,50,60].filter(a=>a>startAge&&a<=stopAge);
+  const decAges=[...new Set([startAge+1,...decPool,...(stopAge<EA?[stopAge]:[]),67])].sort((a,b)=>a-b);
   document.getElementById('decay-row').innerHTML=decAges.map(age=>{
     const d=rows.find(r=>r.age===age)||rows[0];
     const pct=Math.round((1-d.mReal/d.mNom)*100);
     const isStop=age===stopAge&&age!==67;
+    const isFirst=age===decAges[0];
     return `<div class="dc${isStop||age===67?' last':''}">
       <div class="dc-age">Age ${age}${isStop?' ★':''}</div>
       <div class="dc-nom">$${d.mNom.toLocaleString()}</div>
       <div class="dc-arr">↓</div>
       <div class="dc-real">$${Math.round(d.mReal).toLocaleString()}</div>
-      <div class="dc-pct">${age===17?'baseline':'−'+pct+'% real'}</div>
+      <div class="dc-pct">${isFirst?'baseline':'−'+pct+'% real'}</div>
     </div>`;
   }).join('');
 
-  // table — switches between full-run and stop scenario
+  // table
   const modeLabel=document.getElementById('table-mode-label');
   const hiSet=new Set([18,20,25,30,35,40,45,50,55,60,65,67]);
 
   if(isFullRun){
-    modeLabel.innerHTML='Full run to 67 <span class="badge badge-full">all years contributing</span>';
+    modeLabel.innerHTML=`Full run ${startAge}→67 <span class="badge badge-full">all years contributing</span>`;
     document.getElementById('tbody').innerHTML=rows.map(r=>{
       const e=Math.round((1-r.mReal/r.mNom)*100);
       return `<div class="trow${hiSet.has(r.age)?' hi':''}">
@@ -381,11 +433,10 @@ function update(){
       </div>`;
     }).join('');
   }else{
-    modeLabel.innerHTML=`Stopping contributions at age ${stopAge} <span class="badge badge-stop">★ = stop point</span>`;
-    const stopRowsFull=cachedStopRows;
+    modeLabel.innerHTML=`Stop at ${stopAge}, coast to 67 <span class="badge badge-stop">★ = stop point</span>`;
     let dividerInserted=false;
     document.getElementById('tbody').innerHTML=rows.map((r,i)=>{
-      const sr=stopRowsFull[i];
+      const sr=stopRows[i];
       const isStopRow=r.age===stopAge;
       const isCoasting=r.age>stopAge;
       const e=Math.round((1-r.mReal/r.mNom)*100);
@@ -414,13 +465,28 @@ function update(){
 
 // ── SLIDERS ────────────────────────────────────────────────
 const amtSlider=document.getElementById('amt-slider');
-const stopSlider=document.getElementById('stop-slider');
+const startAgeSlider=document.getElementById('start-age-slider');
+const stopAgeSlider=document.getElementById('stop-age-slider');
 const amounts=[20,30,40,50,60,70,80,90,100];
 
 function pct(slider){
   return ((+slider.value - +slider.min)/(+slider.max - +slider.min)*100)+'%';
 }
 function syncSlider(sl){sl.style.setProperty('--pct',pct(sl));}
+
+function syncWindowSlider(){
+  const pctL=(startAge-WIN_MIN)/(EA-WIN_MIN)*100;
+  const pctR=(stopAge-WIN_MIN)/(EA-WIN_MIN)*100;
+  document.getElementById('dual-track').style.background=
+    `linear-gradient(to right,var(--border) ${pctL}%,var(--green) ${pctL}%,var(--green) ${pctR}%,var(--border) ${pctR}%)`;
+  document.getElementById('start-age-display').textContent=startAge;
+  document.getElementById('stop-age-display').textContent=stopAge;
+  const yrs=stopAge-startAge;
+  document.getElementById('window-sub').textContent=
+    startAge===17&&stopAge===67?`${yrs} years · default`:`${yrs} year${yrs===1?'':'s'}`;
+  // keep left thumb above right when handles are close, so user can always drag left
+  startAgeSlider.style.zIndex=startAge>=stopAge-3?3:2;
+}
 
 amtSlider.addEventListener('input',()=>{
   startAmt=amounts[+amtSlider.value-1];
@@ -430,12 +496,18 @@ amtSlider.addEventListener('input',()=>{
   update();
 });
 
-stopSlider.addEventListener('input',()=>{
-  stopAge=+stopSlider.value;
-  document.getElementById('stop-display').textContent=stopAge;
-  document.getElementById('stop-sub').textContent=
-    stopAge===67?'full run — no stop':`${67-stopAge} years left to grow after you stop`;
-  syncSlider(stopSlider);
+startAgeSlider.addEventListener('input',()=>{
+  startAge=Math.min(+startAgeSlider.value, stopAge-2);
+  startAgeSlider.value=startAge;
+  syncWindowSlider();
+  rows=buildRows(startAmt);
+  update();
+});
+
+stopAgeSlider.addEventListener('input',()=>{
+  stopAge=Math.max(+stopAgeSlider.value, startAge+2);
+  stopAgeSlider.value=stopAge;
+  syncWindowSlider();
   update();
 });
 
@@ -528,8 +600,7 @@ function drawChart1(){
   const stopRows=cachedStopRows.length?cachedStopRows:buildStopRows(startAmt,stopAge);
   const maxP=Math.max(...rows.map(r=>r.portReal));
   const yTicks=niceYTicks(maxP);
-  const{xS,yS}=drawAxes(ctx,W,H,PL,PR,PT,PB,yTicks,maxP,
-    [17,22,27,32,37,42,47,52,57,62,67],sf);
+  const{xS,yS}=drawAxes(ctx,W,H,PL,PR,PT,PB,yTicks,maxP,chartXAges(),sf);
 
   const clip=animProgress;
   const portVals=rows.map(r=>r.portReal);
@@ -601,11 +672,9 @@ function drawChart2(){
   const{ctx,W,H}=res;
   const PL=54,PR=16,PT=18,PB=36,CH=H-PT-PB;
   const maxM=Math.max(...rows.map(r=>r.mNom));
-  const step=startAmt<=60?200:startAmt<=120?500:1000;
-  const yTicks=[];for(let v=step;v<=maxM;v+=step)yTicks.push(v);
+  const yTicks=niceYTicks(maxM,4);
 
-  const{xS,yS}=drawAxes(ctx,W,H,PL,PR,PT,PB,yTicks,maxM,
-    [17,22,27,32,37,42,47,52,57,62,67],v=>'$'+v.toLocaleString());
+  const{xS,yS}=drawAxes(ctx,W,H,PL,PR,PT,PB,yTicks,maxM,chartXAges(),v=>'$'+v.toLocaleString());
 
   areaLine(ctx,xS,yS,rows.map(r=>r.mNom),'#aaa',2,[6,4],0.05);
   areaLine(ctx,xS,yS,rows.map(r=>r.mReal),'#1a55a0',2.8,[],0.10);
@@ -735,7 +804,7 @@ function drawAll(){drawChart1();drawChart2();}
 new ResizeObserver(drawAll).observe(document.querySelector('.charts'));
 
 syncSlider(amtSlider);
-syncSlider(stopSlider);
+syncWindowSlider();
 rows=buildRows(startAmt);
 window.addEventListener('load',()=>{update();startAnim();});
 </script>
