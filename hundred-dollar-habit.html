@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="See what happens when you invest $100 a month starting at 17 — every number in today's purchasing power.">
+<meta property="og:title" content="The $100 Habit — Retire with millions?">
+<meta property="og:description" content="Invest $100/mo starting at 17. Every number is in today's purchasing power. Drag the sliders to see what stopping early really costs.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#f7f6f2">
 <title>The $100 Habit</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -164,7 +169,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
     </div>
     <input type="range" class="red-track" id="stop-slider" min="18" max="67" value="67" step="1">
     <div class="slider-ticks">
-      <span>18</span><span>25</span><span>32</span><span>40</span><span>47</span><span>55</span><span>62</span><span>67</span>
+      <span>18</span><span>25</span><span>32</span><span>39</span><span>46</span><span>53</span><span>60</span><span>67</span>
     </div>
   </div>
 </div>
@@ -231,7 +236,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 <script>
 // ── MODEL ─────────────────────────────────────────────────
 const SA=17, EA=67, MN=0.07/12, MI=0.025/12;
-let rows=[], startAmt=100, stopAge=67;
+let rows=[], startAmt=100, stopAge=67, cachedStopRows=[];
 
 function buildRows(start){
   let port=0,infl=1,totNom=0;
@@ -279,13 +284,23 @@ function ssf(n){
   if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'K';
   return '$'+Math.round(n);
 }
+// Pick clean y-axis gridlines (~5 ticks) for any maxP
+function niceYTicks(maxP,target=5){
+  const raw=maxP/target;
+  const mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,2.5,5,10].map(f=>f*mag).find(s=>s>=raw)||10*mag;
+  const ticks=[];
+  for(let v=step;v<=maxP*1.08;v+=step)ticks.push(v);
+  return ticks;
+}
 
 // ── ANIMATION ─────────────────────────────────────────────
 let animProgress=0, animFrame=null;
 const ANIM_DURATION=5000;
 
 function startAnim(){
-  if(animFrame){cancelAnimationFrame(animFrame);clearTimeout(animFrame);}
+  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){animProgress=1;drawChart1();return;}
+  if(animFrame){cancelAnimationFrame(animFrame);animFrame=null;}
   animProgress=0;
   const t0=performance.now();
   function step(now){
@@ -293,16 +308,17 @@ function startAnim(){
     animProgress=t<0.5?4*t*t*t:(1-Math.pow(-2*t+2,3)/2);
     drawChart1();
     if(t<1){animFrame=requestAnimationFrame(step);}
-    else{animProgress=1;drawChart1();animFrame=setTimeout(()=>startAnim(),1400);}
+    else{animProgress=1;drawChart1();animFrame=null;}
   }
   animFrame=requestAnimationFrame(step);
 }
 
 // ── UI UPDATE ─────────────────────────────────────────────
 function update(){
+  cachedStopRows=buildStopRows(startAmt,stopAge);
   const L=rows[rows.length-1];
   const stopRow=rows.find(r=>r.age===stopAge)||rows[rows.length-1];
-  const stopRows=buildStopRows(startAmt,stopAge);
+  const stopRows=cachedStopRows;
   const stopL=stopRows[stopRows.length-1];
 
   // heading
@@ -328,7 +344,7 @@ function update(){
   document.getElementById('stats-stop').innerHTML=[
     {label:'Cash out at age '+stopAge,val:ssf(cashOut),cls:'r',hero:'hero-r',sub:'walk away with this today'},
     {label:'Keep growing to 67',val:ssf(keepGrowing),cls:'o',hero:'hero-o',sub:'stop contributing, stay invested'},
-    {label:'Cost of stopping early',val:isFullRun?'—':ssf(L.portReal-keepGrowing),cls:'r',hero:'',sub:isFullRun?'no early stop':'vs. full run to 67'},
+    {label:'Cost of stopping early',val:isFullRun?'—':ssf(L.portReal-keepGrowing),cls:'r',hero:'',sub:isFullRun?'no early stop':`you give up ${Math.round((L.portReal-keepGrowing)/L.portReal*100)}% of the full-run pot`},
   ].map(x=>`<div class="stat ${x.hero}"><div class="st-label">${x.label}</div><div class="st-val ${x.cls}">${x.val}</div><div class="st-sub">${x.sub}</div></div>`).join('');
 
   // decay strip — show ages up to stopAge
@@ -366,7 +382,7 @@ function update(){
     }).join('');
   }else{
     modeLabel.innerHTML=`Stopping contributions at age ${stopAge} <span class="badge badge-stop">★ = stop point</span>`;
-    const stopRowsFull=buildStopRows(startAmt,stopAge);
+    const stopRowsFull=cachedStopRows;
     let dividerInserted=false;
     document.getElementById('tbody').innerHTML=rows.map((r,i)=>{
       const sr=stopRowsFull[i];
@@ -392,7 +408,7 @@ function update(){
     }).join('');
   }
 
-  startAnim();
+  drawChart1();
   drawChart2();
 }
 
@@ -509,20 +525,21 @@ function drawChart1(){
   const{ctx,W,H}=res;
   const PL=58,PR=16,PT=18,PB=36,CH=H-PT-PB;
 
-  const stopRows=buildStopRows(startAmt,stopAge);
+  const stopRows=cachedStopRows.length?cachedStopRows:buildStopRows(startAmt,stopAge);
   const maxP=Math.max(...rows.map(r=>r.portReal));
-  const yTicks=[0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.5,3,4,5]
-    .map(f=>f*1e6).filter(v=>v<=maxP*1.05&&v>=maxP*0.12);
+  const yTicks=niceYTicks(maxP);
   const{xS,yS}=drawAxes(ctx,W,H,PL,PR,PT,PB,yTicks,maxP,
     [17,22,27,32,37,42,47,52,57,62,67],sf);
 
   const clip=animProgress;
   const portVals=rows.map(r=>r.portReal);
   const contVals=rows.map(r=>r.totReal);
-  const stopGrowVals=stopRows.map(r=>r.portReal);
 
   areaLine(ctx,xS,yS,contVals,'#b86800',1.8,[7,4],0.05,clip);
-  areaLine(ctx,xS,yS,stopGrowVals,'#d06010',2.2,[6,3],0.06,clip);
+  if(stopAge<EA){
+    const stopGrowVals=stopRows.map(r=>r.portReal);
+    areaLine(ctx,xS,yS,stopGrowVals,'#d06010',2.2,[6,3],0.06,clip);
+  }
   areaLine(ctx,xS,yS,portVals,'#1a7a4a',3.2,[],0.10,clip);
 
   // stop-age vertical line + cash-out dot
@@ -532,10 +549,12 @@ function drawChart1(){
     ctx.save();ctx.strokeStyle='#b03030';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
     ctx.beginPath();ctx.moveTo(sx,PT);ctx.lineTo(sx,PT+CH);ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font='9px DM Mono,monospace';ctx.fillStyle='#b03030';ctx.textAlign='left';
+    ctx.font='9px DM Mono,monospace';ctx.fillStyle='#b03030';
     const cashY=yS(rows[stopIdx].portReal);
     dotAt(ctx,sx,cashY,'#b03030');
-    ctx.fillText('cash out: '+cf(rows[stopIdx].portReal),sx+6,cashY-7);
+    // flip label left when stop line is near the right edge
+    if(stopIdx/(rows.length-1)>0.75){ctx.textAlign='right';ctx.fillText('cash out: '+cf(rows[stopIdx].portReal),sx-6,cashY-7);}
+    else{ctx.textAlign='left';ctx.fillText('cash out: '+cf(rows[stopIdx].portReal),sx+6,cashY-7);}
     ctx.restore();
   }
 
@@ -558,20 +577,19 @@ function drawChart1(){
     ctx.font='bold 10px DM Mono,monospace';ctx.textAlign='left';
     ctx.fillStyle='#1a7a4a';
     ctx.fillText(cf(L.portReal),lastX-54,yS(L.portReal)-9);
-    const sL=stopRows[stopRows.length-1];
     if(stopAge<EA){
+      const sL=stopRows[stopRows.length-1];
       ctx.fillStyle='#d06010';
       ctx.fillText(cf(sL.portReal),lastX-54,yS(sL.portReal)+(sL.portReal<L.portReal?14:-9));
     }
   }
 
-  // hover
+  // hover dots
   if(hover1>=0&&hover1<rows.length&&animProgress>=1){
     const r=rows[hover1];
-    const sr=stopRows[hover1];
     xhair(ctx,xS(hover1),PT,CH);
     dotAt(ctx,xS(hover1),yS(r.portReal),'#1a7a4a');
-    dotAt(ctx,xS(hover1),yS(sr.portReal),'#d06010');
+    if(stopAge<EA)dotAt(ctx,xS(hover1),yS(stopRows[hover1].portReal),'#d06010');
     dotAt(ctx,xS(hover1),yS(r.totReal),'#b86800');
   }
 }
@@ -649,16 +667,18 @@ function getIdx(canvas,e,PL){
   return Math.round(((mx-PL)/CW)*(rows.length-1));
 }
 function showTip(e,r,which){
-  const stopRows=buildStopRows(startAmt,stopAge);
-  const sr=stopRows[rows.indexOf(r)]||stopRows[stopRows.length-1];
+  const sr=cachedStopRows[rows.indexOf(r)]||cachedStopRows[cachedStopRows.length-1];
   const er=Math.round((1-r.mReal/r.mNom)*100);
+  const fullRun=stopAge===EA;
   tip.innerHTML=`<div class="tip-head">Age ${r.age} · Year ${r.yr}</div>`+
     (which==='wealth'
-      ?`<div class="tip-g">Full run portfolio: ${cf(r.portReal)}</div>
-        <div class="tip-o">Stop+grow portfolio: ${cf(sr.portReal)}</div>
-        <div class="tip-a">Contributed (full): ${cf(r.totReal)} total</div>
-        ${r.age===stopAge?`<div class="tip-r">Cash out now: ${cf(r.portReal)}</div>`:''}
-        <div class="tip-m">Difference vs full run: ${cf(r.portReal-sr.portReal)}</div>`
+      ?`<div class="tip-g">Full run portfolio: ${cf(r.portReal)}</div>`+
+        (!fullRun
+          ?`<div class="tip-o">Stop+grow portfolio: ${cf(sr.portReal)}</div>`+
+            (r.age===stopAge?`<div class="tip-r">Cash out now: ${cf(r.portReal)}</div>`:'')
+            +`<div class="tip-m">Δ vs full run: ${cf(r.portReal-sr.portReal)}</div>`
+          :'')+
+        `<div class="tip-a">Contributed: ${cf(r.totReal)} total</div>`
       :`<div class="tip-b">Monthly (real): ${cf(r.mReal)}/mo</div>
         <div class="tip-m">Nominal: $${r.mNom.toLocaleString()}/mo</div>
         <div class="tip-m">Inflation eroded ${er}% of buying power</div>`);
@@ -685,6 +705,31 @@ c2.addEventListener('mousemove',e=>{
 });
 c2.addEventListener('mouseleave',()=>{hover2=-1;drawChart2();hideTip();});
 
+// touch support
+function tEvt(e){return{clientX:e.touches[0].clientX,clientY:e.touches[0].clientY};}
+c1.addEventListener('touchstart',e=>{
+  if(animProgress<1)return;
+  const idx=getIdx(c1,tEvt(e),58);if(idx<0)return;
+  e.preventDefault();hover1=idx;drawChart1();showTip(tEvt(e),rows[idx],'wealth');
+},{passive:false});
+c1.addEventListener('touchmove',e=>{
+  if(animProgress<1)return;
+  const idx=getIdx(c1,tEvt(e),58);
+  if(idx<0){hover1=-1;drawChart1();hideTip();return;}
+  e.preventDefault();hover1=idx;drawChart1();showTip(tEvt(e),rows[idx],'wealth');
+},{passive:false});
+c1.addEventListener('touchend',()=>{hover1=-1;drawChart1();hideTip();});
+c2.addEventListener('touchstart',e=>{
+  const idx=getIdx(c2,tEvt(e),54);if(idx<0)return;
+  e.preventDefault();hover2=idx;drawChart2();showTip(tEvt(e),rows[idx],'cost');
+},{passive:false});
+c2.addEventListener('touchmove',e=>{
+  const idx=getIdx(c2,tEvt(e),54);
+  if(idx<0){hover2=-1;drawChart2();hideTip();return;}
+  e.preventDefault();hover2=idx;drawChart2();showTip(tEvt(e),rows[idx],'cost');
+},{passive:false});
+c2.addEventListener('touchend',()=>{hover2=-1;drawChart2();hideTip();});
+
 // ── RESIZE + INIT ─────────────────────────────────────────
 function drawAll(){drawChart1();drawChart2();}
 new ResizeObserver(drawAll).observe(document.querySelector('.charts'));
@@ -692,7 +737,7 @@ new ResizeObserver(drawAll).observe(document.querySelector('.charts'));
 syncSlider(amtSlider);
 syncSlider(stopSlider);
 rows=buildRows(startAmt);
-window.addEventListener('load',()=>{update();});
+window.addEventListener('load',()=>{update();startAnim();});
 </script>
 </body>
 </html>
