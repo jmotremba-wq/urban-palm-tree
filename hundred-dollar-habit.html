@@ -148,19 +148,6 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
   .st-val{font-size:1.2rem}
   .subtitle{font-size:.85rem}
 }
-/* bigger touch targets on touch devices */
-@media(pointer:coarse){
-  .slider-row input[type=range]{height:26px;background-clip:content-box;padding:10px 0}
-  input[type=range].green-track::-webkit-slider-thumb,
-  input[type=range].red-track::-webkit-slider-thumb{width:26px;height:26px}
-  input[type=range].green-track::-moz-range-thumb,
-  input[type=range].red-track::-moz-range-thumb{width:26px;height:26px}
-  .dual-range{height:32px}
-  .dual-range input[type=range]{height:32px;padding:0}
-  .dual-range input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
-  .dual-range input[type=range]::-moz-range-thumb{width:26px;height:26px}
-}
-
 /* Dual-handle range slider */
 .dual-range{position:relative;height:22px;margin:2px 0}
 .dual-track{position:absolute;top:50%;left:0;right:0;height:6px;border-radius:3px;transform:translateY(-50%);pointer-events:none;background:var(--border)}
@@ -170,6 +157,19 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 /* Absolutely-positioned ticks so they align precisely with slider positions */
 .window-ticks{position:relative;height:16px;margin-top:1px}
 .window-ticks span{position:absolute;transform:translateX(-50%);font-family:var(--mono);font-size:.56rem;color:var(--faint)}
+
+/* bigger touch targets on touch devices — must come after base slider rules */
+@media(pointer:coarse){
+  .slider-row>input[type=range]{height:26px;background-clip:content-box;padding:10px 0}
+  input[type=range].green-track::-webkit-slider-thumb,
+  input[type=range].red-track::-webkit-slider-thumb{width:26px;height:26px}
+  input[type=range].green-track::-moz-range-thumb,
+  input[type=range].red-track::-moz-range-thumb{width:26px;height:26px}
+  .dual-range{height:32px}
+  .dual-range input[type=range]{height:32px}
+  .dual-range input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+  .dual-range input[type=range]::-moz-range-thumb{width:26px;height:26px}
+}
 </style>
 </head>
 <body>
