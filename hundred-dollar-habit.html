@@ -46,7 +46,7 @@ input[type=range].green-track{--t:var(--green)}
 input[type=range].red-track{--t:var(--red)}
 input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;
   background:linear-gradient(to right,var(--t,var(--green)) 0%,var(--t,var(--green)) var(--pct,50%),#e2e0d8 var(--pct,50%),#e2e0d8 100%);
-  outline:none;cursor:pointer}
+  outline:none;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent}
 input[type=range].green-track::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--green);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 input[type=range].red-track::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--red);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 input[type=range].green-track::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--green);border:2px solid #fff}
@@ -126,16 +126,39 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 
 @media(max-width:700px){
   .stats-full,.stats-stop{grid-template-columns:1fr 1fr}
+  .stats-stop .stat:last-child{grid-column:1/-1}
   .st-val{font-size:1.35rem}
   .stat{padding:1rem .85rem}
 }
 @media(max-width:620px){
+  body{padding:1.5rem 1rem 3rem}
+  .sliders-wrap{padding:1rem .9rem;gap:1rem}
+  .slider-val{font-size:1.25rem;min-width:54px}
+  .slider-ticks span:nth-child(even){display:none}
   .charts{grid-template-columns:1fr}
   .chart-outer{padding-bottom:62%}
   .decay-row{flex-wrap:wrap}
   .dc{min-width:calc(33% - 3px)}
   .thead,.trow{grid-template-columns:44px 1fr 1fr 1fr}
   .th:nth-child(3),.td:nth-child(3){display:none}
+  .thead,.trow{padding-left:.8rem;padding-right:.8rem}
+  #tip{min-width:0;max-width:calc(100vw - 20px)}
+}
+@media(max-width:380px){
+  .st-val{font-size:1.2rem}
+  .subtitle{font-size:.85rem}
+}
+/* bigger touch targets on touch devices */
+@media(pointer:coarse){
+  .slider-row input[type=range]{height:26px;background-clip:content-box;padding:10px 0}
+  input[type=range].green-track::-webkit-slider-thumb,
+  input[type=range].red-track::-webkit-slider-thumb{width:26px;height:26px}
+  input[type=range].green-track::-moz-range-thumb,
+  input[type=range].red-track::-moz-range-thumb{width:26px;height:26px}
+  .dual-range{height:32px}
+  .dual-range input[type=range]{height:32px;padding:0}
+  .dual-range input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+  .dual-range input[type=range]::-moz-range-thumb{width:26px;height:26px}
 }
 
 /* Dual-handle range slider */
