@@ -175,7 +175,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 <body>
 <div class="wrap">
 
-<p class="eyebrow" id="eyebrow">All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age 17–67</p>
+<p class="eyebrow" id="eyebrow">All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age 17–62</p>
 <h1>Start with <em id="h1-amount">$100.</em><br>Retire with <em id="h1-result">$2.1M.</em></h1>
 <p class="subtitle">Set your contribution window — drag either end. <strong>Every number is in today's purchasing power.</strong> See what starting late or stopping early really costs.</p>
 
@@ -211,27 +211,27 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
       <span class="slider-label">Contribution window</span>
       <span class="slider-val red" id="start-age-display">17</span>
       <span class="slider-sub" style="font-size:.82rem;padding:0 .1rem">→</span>
-      <span class="slider-val red" id="stop-age-display">67</span>
-      <span class="slider-sub" id="window-sub">50 years · default</span>
+      <span class="slider-val red" id="stop-age-display">62</span>
+      <span class="slider-sub" id="window-sub">45 years · default</span>
     </div>
     <div class="dual-range">
       <div class="dual-track" id="dual-track"></div>
-      <input type="range" id="start-age-slider" min="15" max="67" value="17" step="1">
-      <input type="range" id="stop-age-slider" min="15" max="67" value="67" step="1">
+      <input type="range" id="start-age-slider" min="15" max="62" value="17" step="1">
+      <input type="range" id="stop-age-slider" min="15" max="62" value="62" step="1">
     </div>
     <div class="window-ticks">
       <span style="left:0%">15</span>
-      <span style="left:19%">25</span>
-      <span style="left:38%">35</span>
-      <span style="left:58%">45</span>
-      <span style="left:77%">55</span>
-      <span style="left:100%">67</span>
+      <span style="left:21%">25</span>
+      <span style="left:43%">35</span>
+      <span style="left:64%">45</span>
+      <span style="left:85%">55</span>
+      <span style="left:100%">62</span>
     </div>
   </div>
 </div>
 
 <!-- FULL-RUN STATS -->
-<div class="stats-label" id="full-stats-label">Your window — contribute all the way to 67</div>
+<div class="stats-label" id="full-stats-label">Your window — contribute all the way to 62</div>
 <div class="stats-full" id="stats-full"></div>
 
 <!-- COMPARISON STATS -->
@@ -251,7 +251,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
     <div class="cp-sub">Three scenarios, same scale. Drag the stop-age slider to explore.</div>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
       <div class="legend">
-        <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#1a7a4a" stroke-width="3"/></svg></div>Full run to 67</div>
+        <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#1a7a4a" stroke-width="3"/></svg></div>Full run to 62</div>
         <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#d06010" stroke-width="2.5" stroke-dasharray="6,3"/></svg></div>Stop contributing, keep growing</div>
         <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#b03030" stroke-width="2" stroke-dasharray="2,3"/></svg></div>Cash out at stop age</div>
         <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#b86800" stroke-width="1.8" stroke-dasharray="7,4"/></svg></div>Total contributed</div>
@@ -284,15 +284,15 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 </div>
 
 <div class="footnote" id="footnote">
-  Assumptions: Start age 17 · Retire 67 · 50 years · Contribution = starting amount × year number per month · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age 67 · All values in today's purchasing power · No taxes, fees, or gaps modeled.
+  Assumptions: Start age 17 · Retire 62 · 45 years · Contribution = starting amount × year number per month · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age 62 · All values in today's purchasing power · No taxes, fees, or gaps modeled.
 </div>
 </div>
 <div id="tip"></div>
 
 <script>
 // ── MODEL ─────────────────────────────────────────────────
-const EA=67, MN=0.07/12, MI=0.025/12, WIN_MIN=15;
-let rows=[], startAmt=100, initAmt=0, startAge=17, stopAge=67, cachedStopRows=[];
+const EA=62, MN=0.07/12, MI=0.025/12, WIN_MIN=15;
+let rows=[], startAmt=100, initAmt=0, startAge=17, stopAge=62, cachedStopRows=[];
 
 function buildRows(start){
   let port=initAmt,infl=1,totNom=0;
@@ -349,7 +349,7 @@ function niceYTicks(maxP,target=5){
   for(let v=step;v<=maxP*1.08;v+=step)ticks.push(v);
   return ticks;
 }
-// Reference portfolio: 17→67 full run at current startAmt (always the ideal baseline)
+// Reference portfolio: 17→62 full run at current startAmt (always the ideal baseline)
 function baselinePort(start){
   let port=initAmt,infl=1;
   for(let yr=1;yr<=EA-17;yr++){
@@ -397,16 +397,16 @@ function update(){
 
   // eyebrow + heading
   document.getElementById('eyebrow').textContent=
-    `All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age ${startAge}–67`;
+    `All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age ${startAge}–${EA}`;
   document.getElementById('h1-amount').textContent='$'+startAmt+'.';
   document.getElementById('h1-result').textContent=sf(L.portReal)+'.';
 
-  // full-run stats (your window, always contributing to 67)
+  // full-run stats (your window, always contributing to 62)
   document.getElementById('full-stats-label').textContent=
-    isDefault?'Your window — contribute all the way to 67':
-    `Your window (${startAge}→67) — full contribution run`;
+    isDefault?'Your window — contribute all the way to 62':
+    `Your window (${startAge}→62) — full contribution run`;
   document.getElementById('stats-full').innerHTML=[
-    {label:'Portfolio at 67',val:ssf(L.portReal),cls:'g',hero:'hero-g',sub:"your window · today's dollars"},
+    {label:'Portfolio at 62',val:ssf(L.portReal),cls:'g',hero:'hero-g',sub:"your window · today's dollars"},
     {label:'You put in (real)',val:ssf(L.totReal+initAmt),cls:'a',hero:'',sub:initAmt>0?'contributions + starting balance':'inflation-adjusted total'},
     {label:'Market gain (real)',val:ssf(L.portReal-L.totReal-initAmt),cls:'g',hero:'',sub:'above total input'},
     {label:'Final monthly (real)',val:ssf(L.mReal)+'/mo',cls:'',hero:'',sub:'$'+L.mNom.toLocaleString()+' nominal'},
@@ -419,19 +419,19 @@ function update(){
   const ahead=diffP>0;
   const diffPct=Math.round(Math.abs(diffP)/baseP*100);
   const windowDesc=isDefault?`${yrs} years contributing`:
-    isFullRun?`start ${startAge}, contribute to 67`:
-    startAge===17?`stop at ${stopAge}, coast to 67`:
-    `age ${startAge}→${stopAge}, coast to 67`;
+    isFullRun?`start ${startAge}, contribute to 62`:
+    startAge===17?`stop at ${stopAge}, coast to 62`:
+    `age ${startAge}→${stopAge}, coast to 62`;
 
   document.getElementById('stop-stats-label').textContent=
     isDefault?'Ideal run — no adjustments':
-    ahead?'Head start vs. ideal (17→67)':
-    startAge>17&&stopAge<EA?'Your window vs. ideal (17→67)':
-    startAge>17?`Late start vs. ideal (17→67)`:
-    `Early stop vs. ideal (17→67)`;
+    ahead?'Head start vs. ideal (17→62)':
+    startAge>17&&stopAge<EA?'Your window vs. ideal (17→62)':
+    startAge>17?`Late start vs. ideal (17→62)`:
+    `Early stop vs. ideal (17→62)`;
 
   document.getElementById('stats-stop').innerHTML=[
-    {label:'Ideal (17 → 67)',val:ssf(baseP),cls:'g',hero:'',sub:'start at 17, contribute to 67'},
+    {label:'Ideal (17 → 62)',val:ssf(baseP),cls:'g',hero:'',sub:'start at 17, contribute to 62'},
     {label:'Your scenario',val:ssf(yourP),cls:isDefault||ahead?'g':'o',hero:isDefault||ahead?'hero-g':'hero-o',sub:windowDesc},
     ahead
       ?{label:'You gain',val:'+'+ssf(diffP),cls:'g',hero:'',sub:`${diffPct}% above the ideal pot`}
@@ -440,13 +440,13 @@ function update(){
 
   // decay strip: ages within the contribution window
   const decPool=[startAge+1,25,32,40,50,60].filter(a=>a>startAge&&a<=stopAge);
-  const decAges=[...new Set([startAge+1,...decPool,...(stopAge<EA?[stopAge]:[]),67])].sort((a,b)=>a-b);
+  const decAges=[...new Set([startAge+1,...decPool,...(stopAge<EA?[stopAge]:[]),EA])].sort((a,b)=>a-b);
   document.getElementById('decay-row').innerHTML=decAges.map(age=>{
     const d=rows.find(r=>r.age===age)||rows[0];
     const pct=Math.round((1-d.mReal/d.mNom)*100);
-    const isStop=age===stopAge&&age!==67;
+    const isStop=age===stopAge&&age!==EA;
     const isFirst=age===decAges[0];
-    return `<div class="dc${isStop||age===67?' last':''}">
+    return `<div class="dc${isStop||age===EA?' last':''}">
       <div class="dc-age">Age ${age}${isStop?' ★':''}</div>
       <div class="dc-nom">$${d.mNom.toLocaleString()}</div>
       <div class="dc-arr">↓</div>
@@ -457,10 +457,10 @@ function update(){
 
   // table
   const modeLabel=document.getElementById('table-mode-label');
-  const hiSet=new Set([18,20,25,30,35,40,45,50,55,60,65,67]);
+  const hiSet=new Set([18,20,25,30,35,40,45,50,55,60,62]);
 
   if(isFullRun){
-    modeLabel.innerHTML=`Full run ${startAge}→67 <span class="badge badge-full">all years contributing</span>`;
+    modeLabel.innerHTML=`Full run ${startAge}→62 <span class="badge badge-full">all years contributing</span>`;
     document.getElementById('tbody').innerHTML=rows.map(r=>{
       const e=Math.round((1-r.mReal/r.mNom)*100);
       return `<div class="trow${hiSet.has(r.age)?' hi':''}">
@@ -472,7 +472,7 @@ function update(){
       </div>`;
     }).join('');
   }else{
-    modeLabel.innerHTML=`Stop at ${stopAge}, coast to 67 <span class="badge badge-stop">★ = stop point</span>`;
+    modeLabel.innerHTML=`Stop at ${stopAge}, coast to 62 <span class="badge badge-stop">★ = stop point</span>`;
     let dividerInserted=false;
     document.getElementById('tbody').innerHTML=rows.map((r,i)=>{
       const sr=stopRows[i];
@@ -482,7 +482,7 @@ function update(){
       let divider='';
       if(isCoasting&&!dividerInserted){
         dividerInserted=true;
-        divider=`<div class="trow-divider">▼ contributions stopped · portfolio compounding on its own to 67</div>`;
+        divider=`<div class="trow-divider">▼ contributions stopped · portfolio compounding on its own to 62</div>`;
       }
       const rowClass=isStopRow?'stop-row':isCoasting?'coasting':hiSet.has(r.age)?'hi':'';
       const monthlyCell=isCoasting
@@ -524,7 +524,7 @@ function syncWindowSlider(){
   document.getElementById('stop-age-display').textContent=stopAge;
   const yrs=stopAge-startAge;
   document.getElementById('window-sub').textContent=
-    startAge===17&&stopAge===67?`${yrs} years · default`:`${yrs} year${yrs===1?'':'s'}`;
+    startAge===17&&stopAge===EA?`${yrs} years · default`:`${yrs} year${yrs===1?'':'s'}`;
   // keep left thumb above right when handles are close, so user can always drag left
   startAgeSlider.style.zIndex=startAge>=stopAge-3?3:2;
 }
