@@ -203,7 +203,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
     </div>
     <input type="range" class="green-track" id="init-slider" min="0" max="6" value="0" step="1">
     <div class="slider-ticks">
-      <span>$0</span><span>$1K</span><span>$5K</span><span>$10K</span><span>$25K</span><span>$50K</span><span>$100K</span>
+      <span>$0</span><span>$1K</span><span>$2.5K</span><span>$5K</span><span>$10K</span><span>$25K</span><span>$50K</span>
     </div>
   </div>
   <hr class="slider-divider">
@@ -416,8 +416,9 @@ function update(){
   // comparison stats: always baseline vs. your actual scenario (with stopAge applied)
   const baseP=baselinePort(startAmt);
   const yourP=stopRows[stopRows.length-1].portReal;
-  const costP=Math.max(0,baseP-yourP);
-  const costPct=Math.round(costP/baseP*100);
+  const diffP=yourP-baseP;
+  const ahead=diffP>0;
+  const diffPct=Math.round(Math.abs(diffP)/baseP*100);
   const windowDesc=isDefault?`${yrs} years contributing`:
     isFullRun?`start ${startAge}, contribute to 67`:
     startAge===17?`stop at ${stopAge}, coast to 67`:
@@ -425,14 +426,17 @@ function update(){
 
   document.getElementById('stop-stats-label').textContent=
     isDefault?'Ideal run — no adjustments':
+    ahead?'Head start vs. ideal (17→67)':
     startAge>17&&stopAge<EA?'Your window vs. ideal (17→67)':
     startAge>17?`Late start vs. ideal (17→67)`:
     `Early stop vs. ideal (17→67)`;
 
   document.getElementById('stats-stop').innerHTML=[
     {label:'Ideal (17 → 67)',val:ssf(baseP),cls:'g',hero:'',sub:'start at 17, contribute to 67'},
-    {label:'Your scenario',val:ssf(yourP),cls:isDefault?'g':'o',hero:isDefault?'hero-g':'hero-o',sub:windowDesc},
-    {label:'You give up',val:isDefault?'—':ssf(costP),cls:'r',hero:'',sub:isDefault?'on track — no cost':`${costPct}% of the ideal pot`},
+    {label:'Your scenario',val:ssf(yourP),cls:isDefault||ahead?'g':'o',hero:isDefault||ahead?'hero-g':'hero-o',sub:windowDesc},
+    ahead
+      ?{label:'You gain',val:'+'+ssf(diffP),cls:'g',hero:'',sub:`${diffPct}% above the ideal pot`}
+      :{label:'You give up',val:isDefault?'—':ssf(-diffP),cls:'r',hero:'',sub:isDefault?'on track — no cost':`${diffPct}% of the ideal pot`},
   ].map(x=>`<div class="stat ${x.hero}"><div class="st-label">${x.label}</div><div class="st-val ${x.cls}">${x.val}</div><div class="st-sub">${x.sub}</div></div>`).join('');
 
   // decay strip: ages within the contribution window
@@ -505,7 +509,7 @@ const initSlider=document.getElementById('init-slider');
 const startAgeSlider=document.getElementById('start-age-slider');
 const stopAgeSlider=document.getElementById('stop-age-slider');
 const amounts=[20,30,40,50,60,70,80,90,100];
-const initAmounts=[0,1000,5000,10000,25000,50000,100000];
+const initAmounts=[0,1000,2500,5000,10000,25000,50000];
 
 function pct(slider){
   return ((+slider.value - +slider.min)/(+slider.max - +slider.min)*100)+'%';
