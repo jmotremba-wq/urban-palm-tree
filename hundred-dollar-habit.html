@@ -158,6 +158,12 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 .window-ticks{position:relative;height:16px;margin-top:1px}
 .window-ticks span{position:absolute;transform:translateX(-50%);font-family:var(--mono);font-size:.56rem;color:var(--faint)}
 
+/* Growing / Fixed mode toggle */
+.mode-toggle{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px;margin-left:auto;flex-shrink:0}
+.mode-toggle .mo{font-family:var(--mono);font-size:.57rem;letter-spacing:.08em;text-transform:uppercase;padding:.28rem .7rem;border-radius:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.mode-toggle .mo.active[data-mode="grow"]{background:var(--green);color:#fff}
+.mode-toggle .mo.active[data-mode="flat"]{background:var(--amber);color:#fff}
+
 /* bigger touch targets on touch devices — must come after base slider rules */
 @media(pointer:coarse){
   .slider-row>input[type=range]{height:26px;background-clip:content-box;padding:10px 0}
@@ -176,16 +182,20 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 <div class="wrap">
 
 <p class="eyebrow" id="eyebrow">All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age 17–62</p>
-<h1>Start with <em id="h1-amount">$100.</em><br>Retire with <em id="h1-result">$2.1M.</em></h1>
+<h1><span id="h1-verb">Start with</span> <em id="h1-amount">$100.</em><br>Retire with <em id="h1-result">$2.1M.</em></h1>
 <p class="subtitle">Set your contribution window — drag either end. <strong>Every number is in today's purchasing power.</strong> See what starting late or stopping early really costs.</p>
 
 <!-- SLIDERS -->
 <div class="sliders-wrap">
   <div class="slider-row">
     <div class="slider-top">
-      <span class="slider-label">Starting monthly amount</span>
+      <span class="slider-label">Monthly amount</span>
       <span class="slider-val green" id="amt-display">$100</span>
-      <span class="slider-sub">+ same amount added each year</span>
+      <div class="mode-toggle" id="mode-toggle">
+        <button class="mo active" data-mode="grow">Growing</button>
+        <button class="mo" data-mode="flat">Fixed</button>
+      </div>
+      <span class="slider-sub" id="amt-sub">grows +$100/yr · $4,500/mo at 62</span>
     </div>
     <input type="range" class="green-track" id="amt-slider" min="1" max="9" value="9" step="1">
     <div class="slider-ticks">
@@ -293,12 +303,13 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 // ── MODEL ─────────────────────────────────────────────────
 const EA=62, MN=0.07/12, MI=0.025/12, WIN_MIN=15;
 let rows=[], startAmt=100, initAmt=0, startAge=17, stopAge=62, cachedStopRows=[];
+let escalate=true; // true = contribution grows +$start/yr; false = flat $start/mo
 
 function buildRows(start){
   let port=initAmt,infl=1,totNom=0;
   const r=[];
   for(let yr=1;yr<=EA-startAge;yr++){
-    const mNom=start*yr;
+    const mNom=escalate?start*yr:start;
     for(let m=0;m<12;m++){
       port=port*(1+MN)+mNom;
       totNom+=mNom;
@@ -316,7 +327,7 @@ function buildStopRows(start,sAge){
   const r=[];
   for(let yr=1;yr<=EA-startAge;yr++){
     const age=startAge+yr;
-    const mNom=age<=sAge?start*yr:0;
+    const mNom=age<=sAge?(escalate?start*yr:start):0;
     for(let m=0;m<12;m++){
       port=port*(1+MN)+mNom;
       totNom+=mNom;
@@ -353,7 +364,7 @@ function niceYTicks(maxP,target=5){
 function baselinePort(start){
   let port=initAmt,infl=1;
   for(let yr=1;yr<=EA-17;yr++){
-    const mNom=start*yr;
+    const mNom=escalate?start*yr:start;
     for(let m=0;m<12;m++){port=port*(1+MN)+mNom;infl*=(1+MI);}
   }
   return port/infl;
@@ -398,8 +409,13 @@ function update(){
   // eyebrow + heading
   document.getElementById('eyebrow').textContent=
     `All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age ${startAge}–${EA}`;
-  document.getElementById('h1-amount').textContent='$'+startAmt+'.';
+  document.getElementById('h1-verb').textContent=escalate?'Start with':'Invest';
+  document.getElementById('h1-amount').textContent='$'+startAmt+(escalate?'.':'/mo.');
   document.getElementById('h1-result').textContent=sf(L.portReal)+'.';
+  const finalMo=escalate?startAmt*(EA-startAge):startAmt;
+  document.getElementById('amt-sub').textContent=escalate
+    ?`grows +$${startAmt}/yr · $${finalMo.toLocaleString()}/mo at ${EA}`
+    :`constant · $${startAmt}/mo every month`;
 
   // full-run stats (your window, always contributing to 62)
   document.getElementById('full-stats-label').textContent=
@@ -533,6 +549,19 @@ amtSlider.addEventListener('input',()=>{
   startAmt=amounts[+amtSlider.value-1];
   document.getElementById('amt-display').textContent='$'+startAmt;
   syncSlider(amtSlider);
+  rows=buildRows(startAmt);
+  update();
+});
+
+document.getElementById('mode-toggle').addEventListener('click',e=>{
+  const btn=e.target.closest('.mo');
+  if(!btn)return;
+  const next=btn.dataset.mode==='grow';
+  if(next===escalate)return;
+  escalate=next;
+  document.querySelectorAll('.mode-toggle .mo').forEach(b=>{
+    b.classList.toggle('active',b.dataset.mode===(escalate?'grow':'flat'));
+  });
   rows=buildRows(startAmt);
   update();
 });
@@ -753,7 +782,7 @@ function drawChart2(){
   ctx.restore();
 
   const peakIdx=rows.reduce((b,r,i)=>r.mReal>rows[b].mReal?i:b,0);
-  if(hover2<0){
+  if(hover2<0&&escalate){
     const px=xS(peakIdx),py=yS(rows[peakIdx].mReal);
     ctx.save();ctx.strokeStyle='#1a55a0';ctx.lineWidth=1;ctx.setLineDash([2,3]);
     ctx.beginPath();ctx.moveTo(px,py-6);ctx.lineTo(px,py-22);ctx.stroke();
@@ -761,6 +790,16 @@ function drawChart2(){
     ctx.font='9px DM Mono,monospace';ctx.fillStyle='#1a55a0';ctx.textAlign='center';
     ctx.fillText('real cost peaks here',px,py-25);
     ctx.fillText('then eases',px,py-14);
+    ctx.restore();
+  }else if(hover2<0&&!escalate){
+    const midIdx=Math.floor(rows.length/2);
+    const mx=xS(midIdx),my=yS(rows[midIdx].mReal);
+    ctx.save();ctx.strokeStyle='#1a55a0';ctx.lineWidth=1;ctx.setLineDash([2,3]);
+    ctx.beginPath();ctx.moveTo(mx,my-6);ctx.lineTo(mx,my-22);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font='9px DM Mono,monospace';ctx.fillStyle='#1a55a0';ctx.textAlign='center';
+    ctx.fillText('inflation erodes',mx,my-25);
+    ctx.fillText('real value over time',mx,my-14);
     ctx.restore();
   }
 
