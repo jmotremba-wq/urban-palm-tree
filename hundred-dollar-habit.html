@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="See what happens when you invest $100 a month starting at 17 — every number in today's purchasing power.">
-<meta property="og:title" content="The $100 Habit — Retire with millions?">
-<meta property="og:description" content="Invest $100/mo starting at 17. Every number is in today's purchasing power. Drag the sliders to see what stopping early really costs.">
+<meta property="og:title" content="The $100 Habit — See what $100/mo at 17 really builds">
+<meta property="og:description" content="Start investing $100/month at 17, growing with your income — every number in today's purchasing power. Drag the sliders to see what starting late or stopping early really costs.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#f7f6f2">
 <title>The $100 Habit</title>
@@ -182,7 +182,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 <div class="wrap">
 
 <p class="eyebrow" id="eyebrow">All Values in Today's Dollars · 2.5% Inflation · 7% Return · Age 17–62</p>
-<h1><span id="h1-verb">Start with</span> <em id="h1-amount">$100.</em><br>Retire with <em id="h1-result">$2.1M.</em></h1>
+<h1><span id="h1-verb">Start with</span> <em id="h1-amount">$100.</em><br>Retire with <em id="h1-result">$1.58M.</em></h1>
 <p class="subtitle">Set your contribution window — drag either end. <strong>Every number is in today's purchasing power.</strong> See what starting late or stopping early really costs.</p>
 
 <!-- SLIDERS -->
@@ -265,6 +265,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
         <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#d06010" stroke-width="2.5" stroke-dasharray="6,3"/></svg></div>Stop contributing, keep growing</div>
         <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#b03030" stroke-width="2" stroke-dasharray="2,3"/></svg></div>Cash out at stop age</div>
         <div class="li"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#b86800" stroke-width="1.8" stroke-dasharray="7,4"/></svg></div>Total contributed</div>
+        <div class="li" id="legend-baseline" style="display:none"><div class="li-sw"><svg><line x1="0" y1="6" x2="22" y2="6" stroke="#888880" stroke-width="1.5" stroke-dasharray="4,4"/></svg></div>Ideal start (17→62)</div>
       </div>
       <button class="replay-btn" id="replay-btn">▶ replay</button>
     </div>
@@ -294,7 +295,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 </div>
 
 <div class="footnote" id="footnote">
-  Assumptions: Start age 17 · Retire 62 · 45 years · Contribution = starting amount × year number per month · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age 62 · All values in today's purchasing power · No taxes, fees, or gaps modeled.
+  Assumptions: Start age 17 · Retire 62 · 45 years · Contribution grows from $100/mo (year 1) to $4,500/mo (year 45) · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age 62 · All values in today's purchasing power · No taxes, fees, or gaps modeled.
 </div>
 </div>
 <div id="tip"></div>
@@ -302,7 +303,7 @@ input[type=range].red-track::-moz-range-thumb{width:20px;height:20px;border-radi
 <script>
 // ── MODEL ─────────────────────────────────────────────────
 const EA=62, MN=0.07/12, MI=0.025/12, WIN_MIN=15;
-let rows=[], startAmt=100, initAmt=0, startAge=17, stopAge=62, cachedStopRows=[];
+let rows=[], startAmt=100, initAmt=0, startAge=17, stopAge=62, cachedStopRows=[], cachedBaselineRows=[];
 let escalate=true; // true = contribution grows +$start/yr; false = flat $start/mo
 
 function buildRows(start){
@@ -369,6 +370,17 @@ function baselinePort(start){
   }
   return port/infl;
 }
+// Full 17→62 rows for baseline comparison line on chart1
+function buildBaselineRows(start){
+  let port=initAmt,infl=1;
+  const r=[];
+  for(let yr=1;yr<=EA-17;yr++){
+    const mNom=escalate?start*yr:start;
+    for(let m=0;m<12;m++){port=port*(1+MN)+mNom;infl*=(1+MI);}
+    r.push({age:17+yr,portReal:port/infl});
+  }
+  return r;
+}
 // Dynamic x-axis age labels based on current startAge
 function chartXAges(){
   const ages=[];
@@ -400,10 +412,12 @@ function startAnim(){
 // ── UI UPDATE ─────────────────────────────────────────────
 function update(){
   cachedStopRows=buildStopRows(startAmt,stopAge);
+  cachedBaselineRows=startAge>17?buildBaselineRows(startAmt):[];
   const L=rows[rows.length-1];
   const stopRows=cachedStopRows;
   const isDefault=startAge===17&&stopAge===EA;
   const isFullRun=stopAge===EA;
+  document.getElementById('stop-stats-wrap').style.display=isDefault?'none':'';
   const yrs=stopAge-startAge;
 
   // eyebrow + heading
@@ -514,6 +528,10 @@ function update(){
     }).join('');
   }
 
+  document.getElementById('legend-baseline').style.display=startAge>17?'':'none';
+  document.getElementById('footnote').textContent=escalate
+    ?`Assumptions: Start age ${startAge} · Retire ${EA} · ${EA-startAge} years · Contribution grows from $${startAmt}/mo (year 1) to $${(startAmt*(EA-startAge)).toLocaleString()}/mo (year ${EA-startAge}) · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age ${EA} · All values in today's purchasing power · No taxes, fees, or gaps modeled.`
+    :`Assumptions: Start age ${startAge} · Retire ${EA} · ${EA-startAge} years · Flat $${startAmt}/month contribution · 7% nominal annual return, compounded monthly · 2.5% annual inflation · Portfolio always computes to age ${EA} · All values in today's purchasing power · No taxes, fees, or gaps modeled.`;
   drawChart1();
   drawChart2();
 }
@@ -676,7 +694,8 @@ function drawChart1(){
   const PL=58,PR=16,PT=18,PB=36,CH=H-PT-PB;
 
   const stopRows=cachedStopRows.length?cachedStopRows:buildStopRows(startAmt,stopAge);
-  const maxP=Math.max(...rows.map(r=>r.portReal));
+  const baselineFinal=cachedBaselineRows.length?cachedBaselineRows[cachedBaselineRows.length-1].portReal:0;
+  const maxP=Math.max(...rows.map(r=>r.portReal),baselineFinal);
   const yTicks=niceYTicks(maxP);
   const{xS,yS}=drawAxes(ctx,W,H,PL,PR,PT,PB,yTicks,maxP,chartXAges(),sf);
 
@@ -690,6 +709,15 @@ function drawChart1(){
     areaLine(ctx,xS,yS,stopGrowVals,'#d06010',2.2,[6,3],0.06,clip);
   }
   areaLine(ctx,xS,yS,portVals,'#1a7a4a',3.2,[],0.10,clip);
+  if(startAge>17&&cachedBaselineRows.length){
+    const overlap=cachedBaselineRows.filter(br=>br.age>startAge);
+    const bVals=overlap.map(br=>br.portReal);
+    ctx.save();
+    ctx.strokeStyle='#888880';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.globalAlpha=0.5;
+    clippedPath(ctx,xS,yS,bVals,clip);
+    ctx.stroke();ctx.setLineDash([]);
+    ctx.restore();
+  }
 
   // stop-age vertical line + cash-out dot
   const stopIdx=rows.findIndex(r=>r.age===stopAge);
@@ -726,6 +754,13 @@ function drawChart1(){
     ctx.font='bold 10px DM Mono,monospace';ctx.textAlign='left';
     ctx.fillStyle='#1a7a4a';
     ctx.fillText(cf(L.portReal),lastX-54,yS(L.portReal)-9);
+    if(startAge>17&&cachedBaselineRows.length){
+      const blFinal=cachedBaselineRows[cachedBaselineRows.length-1].portReal;
+      const blY=yS(blFinal);
+      ctx.save();ctx.font='9px DM Mono,monospace';ctx.fillStyle='#888';ctx.textAlign='left';ctx.globalAlpha=0.7;
+      ctx.fillText('ideal: '+cf(blFinal),lastX-54,blFinal>L.portReal?blY-9:blY+14);
+      ctx.restore();
+    }
     if(stopAge<EA){
       const sL=stopRows[stopRows.length-1];
       ctx.fillStyle='#d06010';
@@ -895,6 +930,7 @@ syncSlider(amtSlider);
 syncSlider(initSlider);
 syncWindowSlider();
 rows=buildRows(startAmt);
+document.getElementById('h1-result').textContent=sf(rows[rows.length-1].portReal)+'.';
 window.addEventListener('load',()=>{update();startAnim();});
 </script>
 </body>
